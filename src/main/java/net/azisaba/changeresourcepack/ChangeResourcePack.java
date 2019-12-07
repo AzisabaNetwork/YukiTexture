@@ -19,9 +19,9 @@ public class ChangeResourcePack extends JavaPlugin {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (args.length >= 2 && args[0].equalsIgnoreCase("set")) {
-            String url = args[1];
-            String hash = args.length >= 3 ? args[2] : DEFAULT_HASH;
+        if (args.length >= 1 && command.getName().equalsIgnoreCase("changepack")) {
+            String url = args[0];
+            String hash = args.length >= 2 ? args[1] : DEFAULT_HASH;
             setResourcePack(url, hash);
             sender.sendMessage(ChatColor.BLUE + "サーバーリソースパックを " + url + " に変更しました。");
             sender.sendMessage(ChatColor.BLUE + "サーバーリソースパックのハッシュ値を " + hash + " に変更しました。");

@@ -8,6 +8,7 @@ commands:
   changepack:
     description: サーバーリソースパックを変更します
     permission: changeresourcepack.command.changepack
+    usage: "§c使用法: /changepack <URL> [ハッシュ値]"
 permissions:
   changeresourcepack.command.changepack:
     default: op
