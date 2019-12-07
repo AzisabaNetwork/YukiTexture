@@ -9,6 +9,18 @@ commands:
     description: サーバーリソースパックを変更します
     permission: changeresourcepack.command.changepack
     usage: "§c使用法: /changepack <URL> [ハッシュ値]"
+  showpack:
+    description: サーバーリソースパックを表示します
+    permission: changeresourcepack.command.showpack
+    usage: "§c使用法: /showpack"
+  debugpack:
+    description: サーバーリソースパックを正しく読み込めるかチェックします
+    permission: changeresourcepack.command.debugpack
+    usage: "§c使用法: /debugpack"
 permissions:
   changeresourcepack.command.changepack:
+    default: op
+  changeresourcepack.command.showpack:
+    default: true
+  changeresourcepack.command.debugpack:
     default: op
