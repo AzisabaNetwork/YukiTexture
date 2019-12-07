@@ -1,0 +1,13 @@
+name: ${project.name}
+main: net.azisaba.changeresourcepack.ChangeResourcePack
+version: ${project.version}
+author: YukiLeafX
+description: ${project.description}
+website: ${project.url}
+commands:
+  changepack:
+    description: サーバーリソースパックを変更します
+    permission: changeresourcepack.command.changepack
+permissions:
+  changeresourcepack.command.changepack:
+    default: op
