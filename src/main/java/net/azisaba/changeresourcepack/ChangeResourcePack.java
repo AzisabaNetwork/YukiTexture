@@ -39,6 +39,14 @@ public class ChangeResourcePack extends JavaPlugin {
                 .call("setResourcePack", url, hash);
     }
 
+    public boolean isValidHash(String hash) {
+        return hash != null && hash.length() == 40;
+    }
+
+    public String getHash(byte[] data) {
+        return DigestUtils.sha1Hex(data);
+    }
+
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length >= 1 && command.getName().equalsIgnoreCase("changepack")) {
@@ -71,7 +79,7 @@ public class ChangeResourcePack extends JavaPlugin {
                     sender.sendMessage(PREFIX + " " + PREFIX_BAD + " URLの構文が正しくありません！");
                 }
 
-                URLConnection connectionObj = null;
+                URLConnection connectionObj;
                 try {
                     Objects.requireNonNull(urlObj);
                     connectionObj = urlObj.openConnection();
@@ -98,18 +106,19 @@ public class ChangeResourcePack extends JavaPlugin {
                     sender.sendMessage(PREFIX + " " + PREFIX_BAD + " ファイルを取得できません！");
                 }
 
-                boolean goodHash = hash != null && hash.length() == 40;
-                sender.sendMessage(PREFIX + " " + (goodHash ? PREFIX_OK : PREFIX_BAD) + " ハッシュ値: " + hash);
+                sender.sendMessage(PREFIX + " " + (isValidHash(hash) ? PREFIX_OK : PREFIX_BAD) + " ハッシュ値: " + hash);
 
+                String contentHash = null;
                 try {
-                    Objects.requireNonNull(hash);
                     Objects.requireNonNull(content);
-                    String contentHash = DigestUtils.sha1Hex(content);
-                    boolean matchHash = hash.equalsIgnoreCase(contentHash);
-                    sender.sendMessage(PREFIX + " " + (matchHash ? PREFIX_OK : PREFIX_BAD) + " ファイルのハッシュ値: " + contentHash);
+                    contentHash = getHash(content);
+                    sender.sendMessage(PREFIX + " " + (isValidHash(contentHash) ? PREFIX_OK : PREFIX_BAD) + " ファイルのハッシュ値: " + contentHash);
                 } catch (Exception ex) {
-                    sender.sendMessage(PREFIX + " " + PREFIX_BAD + " SHA1を取得できません！");
+                    sender.sendMessage(PREFIX + " " + PREFIX_BAD + " ファイルのハッシュ値を取得できません！");
                 }
+
+                boolean matchHash = Objects.equals(hash, contentHash);
+                sender.sendMessage(PREFIX + " " + (matchHash ? PREFIX_OK : PREFIX_BAD) + " ハッシュ値が一致" + (matchHash ? "しました！" : "しません。"));
 
                 sender.sendMessage(PREFIX + " 完了しました！");
             });
