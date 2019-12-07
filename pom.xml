@@ -6,10 +6,10 @@
 
     <groupId>net.azisaba</groupId>
     <artifactId>ChangeResourcePack</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
 
     <name>${project.artifactId}</name>
-    <description>サーバー起動中にサーバーリソースパックを変更できます</description>
+    <description>サーバー起動中にサーバーリソースパックを変更できます！</description>
 
     <url>https://azisaba.net</url>
     <organization>
@@ -77,6 +77,16 @@
             <groupId>org.jooq</groupId>
             <artifactId>joor-java-8</artifactId>
             <version>0.9.7</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>2.6</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-codec</groupId>
+            <artifactId>commons-codec</artifactId>
+            <version>1.13</version>
         </dependency>
     </dependencies>
 </project>

@@ -1,18 +1,16 @@
 package net.azisaba.changeresourcepack;
 
+import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.io.IOUtils;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.joor.Reflect;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.net.URL;
 import java.net.URLConnection;
-import java.nio.charset.StandardCharsets;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class ChangeResourcePack extends JavaPlugin {
 
@@ -81,25 +79,39 @@ public class ChangeResourcePack extends JavaPlugin {
 
                     String type = connectionObj.getContentType();
                     boolean goodType = "application/zip".equals(type);
-                    sender.sendMessage(PREFIX + " " + (goodType ? PREFIX_OK : PREFIX_BAD) + " Content-Type: " + type);
+                    sender.sendMessage(PREFIX + " " + (goodType ? PREFIX_OK : PREFIX_BAD) + " Content-Type は " + type + " です。");
 
                     long length = connectionObj.getContentLengthLong();
                     boolean goodLength = length > 0;
-                    sender.sendMessage(PREFIX + " " + (goodLength ? PREFIX_OK : PREFIX_BAD) + " Content-Length: " + length);
+                    sender.sendMessage(PREFIX + " " + (goodLength ? PREFIX_OK : PREFIX_BAD) + " Content-Length は " + length + " です。");
                 } catch (Exception ex) {
                     sender.sendMessage(PREFIX + " " + PREFIX_BAD + " URLへの接続を確立できません！");
                 }
 
-                String content = null;
+                byte[] content = null;
                 try {
-                    Objects.requireNonNull(connectionObj);
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(connectionObj.getInputStream(), StandardCharsets.UTF_8));
-                    content = reader.lines().collect(Collectors.joining(System.lineSeparator()));
-                    long finalSize = content.length();
-                    sender.sendMessage(PREFIX + " " + PREFIX_OK + " リソースパックの取得に成功しました！ (サイズ: " + finalSize + ")");
+                    Objects.requireNonNull(urlObj);
+                    content = IOUtils.toByteArray(urlObj);
+                    long finalSize = content.length;
+                    sender.sendMessage(PREFIX + " " + PREFIX_OK + " ファイルの取得に成功しました！ (" + finalSize + " Bytes)");
                 } catch (Exception ex) {
-                    sender.sendMessage(PREFIX + " " + PREFIX_BAD + " リソースパックを取得できません！");
+                    sender.sendMessage(PREFIX + " " + PREFIX_BAD + " ファイルを取得できません！");
                 }
+
+                boolean goodHash = hash != null && hash.length() == 40;
+                sender.sendMessage(PREFIX + " " + (goodHash ? PREFIX_OK : PREFIX_BAD) + " ハッシュ値: " + hash);
+
+                try {
+                    Objects.requireNonNull(hash);
+                    Objects.requireNonNull(content);
+                    String contentHash = DigestUtils.sha1Hex(content);
+                    boolean matchHash = hash.equalsIgnoreCase(contentHash);
+                    sender.sendMessage(PREFIX + " " + (matchHash ? PREFIX_OK : PREFIX_BAD) + " ファイルのハッシュ値: " + contentHash);
+                } catch (Exception ex) {
+                    sender.sendMessage(PREFIX + " " + PREFIX_BAD + " SHA1を取得できません！");
+                }
+
+                sender.sendMessage(PREFIX + " 完了しました！");
             });
             return true;
         }
