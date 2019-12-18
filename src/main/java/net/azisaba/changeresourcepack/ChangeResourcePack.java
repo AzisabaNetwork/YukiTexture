@@ -1,5 +1,9 @@
 package net.azisaba.changeresourcepack;
 
+import java.net.URL;
+import java.net.URLConnection;
+import java.util.Objects;
+
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
 import org.bukkit.ChatColor;
@@ -7,10 +11,6 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.joor.Reflect;
-
-import java.net.URL;
-import java.net.URLConnection;
-import java.util.Objects;
 
 public class ChangeResourcePack extends JavaPlugin {
 
@@ -49,7 +49,7 @@ public class ChangeResourcePack extends JavaPlugin {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (args.length >= 1 && command.getName().equalsIgnoreCase("changepack")) {
+        if ( args.length >= 1 && command.getName().equalsIgnoreCase("changepack") ) {
             String url = args[0];
             String hash = args.length >= 2 ? args[1] : DEFAULT_HASH;
             setResourcePack(url, hash);
@@ -57,7 +57,23 @@ public class ChangeResourcePack extends JavaPlugin {
             sender.sendMessage(PREFIX + " 確認するには " + ChatColor.AQUA + "/showpack" + ChatColor.RESET + " と入力！");
             return true;
         }
-        if (command.getName().equalsIgnoreCase("showpack")) {
+        if ( args.length >= 1 && command.getName().equalsIgnoreCase("changepack-url") ) {
+            String url = args[0];
+            String hash = getResourcePackHash();
+            setResourcePack(url, hash);
+            sender.sendMessage(PREFIX + " サーバーリソースパックの " + ChatColor.RED + "URLのみ" + ChatColor.RESET + " を " + ChatColor.GREEN + "正常に変更" + ChatColor.RESET + " しました！");
+            sender.sendMessage(PREFIX + " 確認するには " + ChatColor.AQUA + "/showpack" + ChatColor.RESET + " と入力！");
+            return true;
+        }
+        if ( args.length >= 1 && command.getName().equalsIgnoreCase("changepack-hash") ) {
+            String url = getResourcePack();
+            String hash = args[0];
+            setResourcePack(url, hash);
+            sender.sendMessage(PREFIX + " サーバーリソースパックの " + ChatColor.RED + "ハッシュ値のみ" + ChatColor.RESET + " を " + ChatColor.GREEN + "正常に変更" + ChatColor.RESET + " しました！");
+            sender.sendMessage(PREFIX + " 確認するには " + ChatColor.AQUA + "/showpack" + ChatColor.RESET + " と入力！");
+            return true;
+        }
+        if ( command.getName().equalsIgnoreCase("showpack") ) {
             String url = getResourcePack();
             String hash = getResourcePackHash();
             sender.sendMessage(PREFIX + " --------------------------------");
@@ -67,7 +83,7 @@ public class ChangeResourcePack extends JavaPlugin {
             sender.sendMessage(PREFIX + " 正しく読み込めるかチェックするには " + ChatColor.YELLOW + "/debugpack" + ChatColor.RESET + " と入力！");
             return true;
         }
-        if (command.getName().equalsIgnoreCase("debugpack")) {
+        if ( command.getName().equalsIgnoreCase("debugpack") ) {
             String url = getResourcePack();
             String hash = getResourcePackHash();
             getServer().getScheduler().runTaskAsynchronously(this, () -> {
@@ -75,7 +91,7 @@ public class ChangeResourcePack extends JavaPlugin {
                 try {
                     urlObj = new URL(url);
                     sender.sendMessage(PREFIX + " " + PREFIX_OK + " URLの構文は正しいです！");
-                } catch (Exception ex) {
+                } catch ( Exception ex ) {
                     sender.sendMessage(PREFIX + " " + PREFIX_BAD + " URLの構文が正しくありません！");
                 }
 
@@ -92,7 +108,7 @@ public class ChangeResourcePack extends JavaPlugin {
                     long length = connectionObj.getContentLengthLong();
                     boolean goodLength = length > 0;
                     sender.sendMessage(PREFIX + " " + (goodLength ? PREFIX_OK : PREFIX_BAD) + " Content-Length は " + length + " です。");
-                } catch (Exception ex) {
+                } catch ( Exception ex ) {
                     sender.sendMessage(PREFIX + " " + PREFIX_BAD + " URLへの接続を確立できません！");
                 }
 
@@ -102,7 +118,7 @@ public class ChangeResourcePack extends JavaPlugin {
                     content = IOUtils.toByteArray(urlObj);
                     long finalSize = content.length;
                     sender.sendMessage(PREFIX + " " + PREFIX_OK + " ファイルの取得に成功しました！ (" + finalSize + " Bytes)");
-                } catch (Exception ex) {
+                } catch ( Exception ex ) {
                     sender.sendMessage(PREFIX + " " + PREFIX_BAD + " ファイルを取得できません！");
                 }
 
@@ -113,7 +129,7 @@ public class ChangeResourcePack extends JavaPlugin {
                     Objects.requireNonNull(content);
                     contentHash = getHash(content);
                     sender.sendMessage(PREFIX + " " + (isValidHash(contentHash) ? PREFIX_OK : PREFIX_BAD) + " ファイルのハッシュ値: " + contentHash);
-                } catch (Exception ex) {
+                } catch ( Exception ex ) {
                     sender.sendMessage(PREFIX + " " + PREFIX_BAD + " ファイルのハッシュ値を取得できません！");
                 }
 
@@ -121,6 +137,15 @@ public class ChangeResourcePack extends JavaPlugin {
                 sender.sendMessage(PREFIX + " " + (matchHash ? PREFIX_OK : PREFIX_BAD) + " ハッシュ値が一致" + (matchHash ? "しました！" : "しません。"));
 
                 sender.sendMessage(PREFIX + " 完了しました！");
+            });
+            return true;
+        }
+        if ( command.getName().equalsIgnoreCase("savepack") ) {
+            String url = getResourcePack();
+            String hash = getResourcePackHash();
+            getServer().getScheduler().runTaskAsynchronously(this, () -> {
+                sender.sendMessage(PREFIX + " " + "server.properties に情報を書き込んでいます...");
+                // TODO: #3 あーああああああああああああああ
             });
             return true;
         }
