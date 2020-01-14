@@ -1,8 +1,12 @@
 package net.azisaba.changeresourcepack;
 
+import java.io.File;
+import java.io.IOException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.nio.file.Files;
 import java.util.Objects;
+import java.util.Properties;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
@@ -37,6 +41,25 @@ public class ChangeResourcePack extends JavaPlugin {
         Reflect.on(getServer())
                 .call("getServer")
                 .call("setResourcePack", url, hash);
+    }
+
+    public void saveResourcePack(String url, String hash) throws IOException {
+        File propertiesFile = Reflect.on(getServer())
+                .call("getServer")
+                .field("options")
+                .call("valueOf", "config")
+                .get();
+        Properties properties = new Properties();
+        properties.load(Files.newBufferedReader(propertiesFile.toPath()));
+        properties.setProperty("resource-pack", url);
+        if ( properties.containsKey("resource-pack-hash") ) {
+            properties.setProperty("resource-pack-hash", hash);
+        }
+        if ( properties.containsKey("resource-pack-sha1") ) {
+            properties.setProperty("resource-pack-sha1", hash);
+        }
+        String comments = Files.newBufferedReader(propertiesFile.toPath()).readLine().substring(1);
+        properties.store(Files.newBufferedWriter(propertiesFile.toPath()), comments);
     }
 
     public boolean isValidHash(String hash) {
@@ -81,6 +104,7 @@ public class ChangeResourcePack extends JavaPlugin {
             sender.sendMessage(PREFIX + " ハッシュ値 ) " + ChatColor.WHITE + hash);
             sender.sendMessage(PREFIX + " --------------------------------");
             sender.sendMessage(PREFIX + " 正しく読み込めるかチェックするには " + ChatColor.YELLOW + "/debugpack" + ChatColor.RESET + " と入力！");
+            sender.sendMessage(PREFIX + " 再起動した後もこの設定を使うには " + ChatColor.DARK_RED + "/savepack" + ChatColor.RESET + " と入力！");
             return true;
         }
         if ( command.getName().equalsIgnoreCase("debugpack") ) {
@@ -143,9 +167,14 @@ public class ChangeResourcePack extends JavaPlugin {
         if ( command.getName().equalsIgnoreCase("savepack") ) {
             String url = getResourcePack();
             String hash = getResourcePackHash();
+            sender.sendMessage(PREFIX + " server.properties に情報を書き込んでいます...");
             getServer().getScheduler().runTaskAsynchronously(this, () -> {
-                sender.sendMessage(PREFIX + " " + "server.properties に情報を書き込んでいます...");
-                // TODO: #3 あーああああああああああああああ
+                try {
+                    saveResourcePack(url, hash);
+                } catch ( IOException ex ) {
+                    sender.sendMessage(PREFIX + " " + ChatColor.RED + "書き込みに失敗しました。");
+                }
+                sender.sendMessage(PREFIX + " 書き込みが完了しました！");
             });
             return true;
         }
