@@ -15,7 +15,7 @@ commands:
     usage: "§c使用法: /chanepack-url <URL>"
   changepack-hash:
     description: サーバーリソースパックのハッシュ値のみを変更します
-    permission: changeresourecpack.command.changepack-hash
+    permission: changeresourcepack.command.changepack-hash
     usage: "§c使用法: /changepack-hash <ハッシュ値>"
   showpack:
     description: サーバーリソースパックを表示します
