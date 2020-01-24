@@ -157,7 +157,7 @@ public class ChangeResourcePack extends JavaPlugin {
                     sender.sendMessage(PREFIX + " " + PREFIX_BAD + " ファイルのハッシュ値を取得できません！");
                 }
 
-                boolean matchHash = Objects.equals(hash, contentHash);
+                boolean matchHash = hash != null && hash.equalsIgnoreCase(contentHash);
                 sender.sendMessage(PREFIX + " " + (matchHash ? PREFIX_OK : PREFIX_BAD) + " ハッシュ値が一致" + (matchHash ? "しました！" : "しません。"));
 
                 sender.sendMessage(PREFIX + " 完了しました！");
