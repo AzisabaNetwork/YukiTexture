@@ -1,44 +1,22 @@
-name: ${project.name}
-main: net.azisaba.changeresourcepack.ChangeResourcePack
-version: ${project.version}
+name: YukiTexture
+version: 1.0.0
+main: net.azisaba.yukitexture.YukiTexture
+
 author: YukiLeafX
-description: ${project.description}
-website: ${project.url}
+
 commands:
-  changepack:
-    description: サーバーリソースパックを変更します
-    permission: changeresourcepack.command.changepack
-    usage: "§c使用法: /changepack <URL> [ハッシュ値]"
-  changepack-url:
-    description: サーバーリソースパックのURLのみを変更します
-    permission: changeresourcepack.command.changepack-url
-    usage: "§c使用法: /chanepack-url <URL>"
-  changepack-hash:
-    description: サーバーリソースパックのハッシュ値のみを変更します
-    permission: changeresourcepack.command.changepack-hash
-    usage: "§c使用法: /changepack-hash <ハッシュ値>"
-  showpack:
-    description: サーバーリソースパックを表示します
-    permission: changeresourcepack.command.showpack
-    usage: "§c使用法: /showpack"
-  debugpack:
-    description: サーバーリソースパックを正しく読み込めるかチェックします
-    permission: changeresourcepack.command.debugpack
-    usage: "§c使用法: /debugpack"
-  savepack:
-    description: サーバーリソースパックの設定をファイルに書き込みます
-    permission: changeresourcepack.command.savepack
-    usage: "§c使用法: /savepack"
+  tex:
+    description: プレイヤーにリソースパックを適用します。
+    permission: yukitexture.command.texture
+    aliases: [ texture, resourcepack, pack ]
+  reloadtex:
+    description: リソースパックを再読み込みします。
+    permission: yukitexture.command.reloadtex
+
 permissions:
-  changeresourcepack.command.changepack:
-    default: op
-  changeresourcepack.command.changepack-url:
-    defualt: op
-  changeresourcepack.command.changepack-hash:
-    default: op
-  changeresourcepack.command.showpack:
+  yukitexture.receive:
     default: true
-  changeresourcepack.command.debugpack:
-    default: op
-  changeresourcepack.command.savepack:
+  yukitexture.command.texture:
+    default: true
+  yukitexture.command.reloadtex:
     default: op
