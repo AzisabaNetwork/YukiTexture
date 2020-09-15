@@ -9,7 +9,6 @@ class TextureListener(private val plugin: YukiTexture) : Listener {
 
     @EventHandler
     fun onJoin(e: PlayerJoinEvent) {
-        if (!e.player.hasPermission("yukitexture.receive")) return
-        plugin.applyTexAsync(e.player)
+        if (e.player.hasPermission("yukitexture.receive")) plugin.applyTexAsync(e.player)
     }
 }

@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "net.azisaba"
-version = "1.0.0"
+version = "1.0.1"
 
 repositories {
     mavenCentral()
@@ -21,6 +21,7 @@ dependencies {
     implementation("org.jooq:joor-java-8:0.9.13")
     implementation("com.github.kittinunf.fuel:fuel:2.2.3")
     implementation("me.rayzr522:jsonmessage:1.2.1")
+    implementation("commons-codec:commons-codec:1.15")
 }
 
 tasks {
@@ -34,6 +35,7 @@ tasks {
         relocate("com.github.kittinunf.fuel", UUID.randomUUID().toString())
         relocate("com.github.kittinunf.result", UUID.randomUUID().toString())
         relocate("me.rayzr522.jsonmessage", UUID.randomUUID().toString())
+        relocate("org.apache.commons.codec", UUID.randomUUID().toString())
 
         minimize()
     }
