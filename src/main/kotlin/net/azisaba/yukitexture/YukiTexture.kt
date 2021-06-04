@@ -19,7 +19,16 @@ class YukiTexture : JavaPlugin() {
 
     private val prefix = "${CC.GRAY}[${CC.RED}$name${CC.GRAY}]${CC.RESET}"
 
+    /**
+     * Texture pack URL
+     */
     private lateinit var tex: String
+
+    /**
+     * SHA-1 hash
+     * null means undefined and the resource pack needs to be downloaded before sending request to client.
+     */
+    private var sha1: String? = null
 
     fun reloadTex(sender: CommandSender? = null) {
         Reflect.on(server)
@@ -33,42 +42,49 @@ class YukiTexture : JavaPlugin() {
         tex = yaml.getString("url")
         if (tex.isNotBlank()) logger.info("リソースパックのURLを $tex に設定しました。")
 
+        // reset sha1 hash so we can re-download the resource pack and calculate the sha1 hash again
+        sha1 = null
+
         sender?.sendMessage("$prefix ${CC.GREEN}リソースパックのURLを再読み込みしました。")
     }
 
     private fun applyTex(player: Player) {
         if (tex.isBlank()) return
 
-        val (_, response, result) = FuelManager()
-            .addRequestInterceptor { next: (Request) -> Request ->
-                { req: Request ->
-                    JSONMessage.actionbar("${req.url.host} に接続中...", player)
-                    next(req)
+        // update sha1 hash of resource pack only if sha1 hash is not calculated yet
+        if (sha1 === null) {
+            val (_, response, result) = FuelManager()
+                .addRequestInterceptor { next: (Request) -> Request ->
+                    { req: Request ->
+                        JSONMessage.actionbar("${req.url.host} に接続中...", player)
+                        next(req)
+                    }
                 }
+                .get(tex)
+                .responseProgress { readBytes, totalBytes ->
+                    val percent = readBytes.toFloat().div(totalBytes).times(100)
+                    JSONMessage.actionbar("リソースパックをダウンロード中... ($percent %)", player)
+                }
+                .response()
+            JSONMessage.create()
+                .then("$prefix レスポンスは ")
+                .then("${response.statusCode} (${response.responseMessage})")
+                .tooltip(buildString {
+                    append("${CC.YELLOW}URL: ${CC.RESET}${response.url}")
+                    append("\n")
+                    @Suppress("SimplifiableCallChain")
+                    append(response.headers
+                        .map { "${CC.AQUA}${it.key}: ${CC.RESET}${it.value.joinToString(" ")}" }
+                        .joinToString("\n"))
+                })
+                .then(" です。")
+                .send(player)
+            if (result is Result.Failure) {
+                result.getException().printStackTrace()
+                return
             }
-            .get(tex)
-            .responseProgress { readBytes, totalBytes ->
-                val percent = readBytes.toFloat().div(totalBytes).times(100)
-                JSONMessage.actionbar("リソースパックをダウンロード中... ($percent %)", player)
-            }
-            .response()
-        JSONMessage.create()
-            .then("$prefix レスポンスは ")
-            .then("${response.statusCode} (${response.responseMessage})")
-            .tooltip(buildString {
-                append("${CC.YELLOW}URL: ${CC.RESET}${response.url}")
-                append("\n")
-                append(response.headers
-                    .map { "${CC.AQUA}${it.key}: ${CC.RESET}${it.value.joinToString(" ")}" }
-                    .joinToString("\n"))
-            })
-            .then(" です。")
-            .send(player)
-        if (result is Result.Failure) {
-            result.getException().printStackTrace()
-            return
+            sha1 = DigestUtils.sha1Hex(result.get())
         }
-        val sha1 = DigestUtils.sha1Hex(result.get())
         JSONMessage.create()
             .then("$prefix ")
             .then("SHA-1")
@@ -79,7 +95,7 @@ class YukiTexture : JavaPlugin() {
             .title(0, 100, 20, player)
         JSONMessage.create("プレイヤーのリソースパックを変更中...")
             .subtitle(player)
-        player.setResourcePack(response.url.toString(), sha1)
+        player.setResourcePack(tex, sha1)
         player.sendMessage("$prefix ${CC.GREEN}完了しました。")
     }
 
