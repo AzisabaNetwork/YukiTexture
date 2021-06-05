@@ -86,17 +86,15 @@ class YukiTexture : JavaPlugin() {
             sha1 = DigestUtils.sha1Hex(result.get())
         }
         JSONMessage.create()
-            .then("$prefix ")
-            .then("SHA-1")
-            .tooltip(sha1)
-            .then(" を計算しました。")
-            .send(player)
-        JSONMessage.create()
             .title(0, 100, 20, player)
         JSONMessage.create("プレイヤーのリソースパックを変更中...")
             .subtitle(player)
         player.setResourcePack(tex, sha1)
-        player.sendMessage("$prefix ${CC.GREEN}完了しました。")
+        JSONMessage.create()
+            .then("$prefix ")
+            .then("${CC.GREEN}完了しました。")
+            .tooltip("SHA-1: $sha1")
+            .send(player)
     }
 
     fun applyTexAsync(player: Player) {
