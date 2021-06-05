@@ -72,10 +72,13 @@ class YukiTexture : JavaPlugin() {
                 .tooltip(buildString {
                     append("${CC.YELLOW}URL: ${CC.RESET}${response.url}")
                     append("\n")
-                    @Suppress("SimplifiableCallChain")
-                    append(response.headers
-                        .map { "${CC.AQUA}${it.key}: ${CC.RESET}${it.value.joinToString(" ")}" }
-                        .joinToString("\n"))
+                    append(
+                        response.headers
+                            .entries
+                            .joinToString("\n") {
+                                "${CC.AQUA}${it.key}: ${CC.RESET}${it.value.joinToString(" ")}"
+                            }
+                    )
                 })
                 .then(" です。")
                 .send(player)
