@@ -7,22 +7,28 @@ import me.rayzr522.jsonmessage.JSONMessage
 import net.azisaba.yukitexture.command.ReloadTextureCommand
 import net.azisaba.yukitexture.command.TextureCommand
 import net.azisaba.yukitexture.listener.TextureListener
+import net.azisaba.yukitexture.sql.DBConnector
 import org.apache.commons.codec.digest.DigestUtils
 import org.bukkit.command.CommandSender
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.entity.Player
 import org.bukkit.plugin.java.JavaPlugin
 import org.joor.Reflect
+import org.mariadb.jdbc.Driver
+import java.sql.SQLException
 import org.bukkit.ChatColor as CC
 
 class YukiTexture : JavaPlugin() {
+    init {
+        Driver() // Prevent minimize
+    }
 
     private val prefix = "${CC.GRAY}[${CC.RED}$name${CC.GRAY}]${CC.RESET}"
 
     /**
      * Texture pack URL
      */
-    private lateinit var tex: String
+    lateinit var tex: String
 
     /**
      * SHA-1 hash
@@ -30,15 +36,29 @@ class YukiTexture : JavaPlugin() {
      */
     private var sha1: String? = null
 
+    var db: DBConnector? = null
+    var dbPrefix = "server_"
+
+    private var config: YamlConfiguration? = null
+    var serverName: String = "server"
+
+    fun getTextureConfig(reload: Boolean = false): YamlConfiguration {
+        if (reload || config == null) {
+            val file = dataFolder.resolve("texture.yml")
+            if (!file.isFile) saveResource(file.name, true)
+            config = YamlConfiguration.loadConfiguration(file)
+            return config!!
+        }
+        return config!!
+    }
+
     fun reloadTex(sender: CommandSender? = null) {
         Reflect.on(server)
             .call("getServer")
             .call("setResourcePack", "", "")
         logger.info("デフォルトのリソースパックを無効化しました。")
 
-        val file = dataFolder.resolve("texture.yml")
-        if (!file.isFile) saveResource(file.name, true)
-        val yaml = YamlConfiguration.loadConfiguration(file)
+        val yaml = getTextureConfig(true)
         tex = yaml.getString("url")
         if (tex.isNotBlank()) logger.info("リソースパックのURLを $tex に設定しました。")
 
@@ -48,7 +68,7 @@ class YukiTexture : JavaPlugin() {
         sender?.sendMessage("$prefix ${CC.GREEN}リソースパックのURLを再読み込みしました。")
     }
 
-    private fun applyTex(player: Player) {
+    fun applyTex(player: Player) {
         if (tex.isBlank()) return
 
         // update sha1 hash of resource pack only if sha1 hash is not calculated yet
@@ -100,15 +120,47 @@ class YukiTexture : JavaPlugin() {
             .send(player)
     }
 
-    fun applyTexAsync(player: Player) {
-        server.scheduler.runTaskAsynchronously(this) { applyTex(player) }
-    }
-
     override fun onEnable() {
         reloadTex()
+        DBConnector // load driver
+        val yaml = getTextureConfig()
+        serverName = yaml.getString("server")
+        val host = yaml.getString("database.host", "localhost")
+        val name = yaml.getString("database.name", "yukitexture")
+        val user = yaml.getString("database.user", "yukitexture")
+        val password = yaml.getString("database.password")
+        dbPrefix = yaml.getString("database.prefix", "server_")
+        if (host.isNullOrEmpty() || name.isNullOrEmpty() || user.isNullOrEmpty() || password.isNullOrEmpty()) {
+            db = null
+            logger.warning("1つ以上のデータベース設定が空です。データベースなしで続行します。")
+        } else {
+            db = DBConnector(host, name, user, password)
+            logger.info("データベースに接続中...")
+            try {
+                db?.connect()
+                db?.execute("""
+                    CREATE TABLE IF NOT EXISTS `${dbPrefix}players` (
+                      `uuid` varchar(36) NOT NULL,
+                      `last_server` varchar(255) DEFAULT NULL,
+                      `pending_quit` tinyint(1) NOT NULL DEFAULT 0,
+                      PRIMARY KEY (`uuid`)
+                    );
+                """.trimIndent())
+                logger.info("データベースに接続しました。")
+            } catch (e: SQLException) {
+                logger.warning("データベースに接続できませんでした。データベースなしで続行します。")
+                e.printStackTrace()
+            }
+        }
 
         getCommand("tex").executor = TextureCommand(this)
         getCommand("reloadtex").executor = ReloadTextureCommand(this)
         server.pluginManager.registerEvents(TextureListener(this), this)
+    }
+
+    override fun onDisable() {
+        server.messenger.unregisterOutgoingPluginChannel(this)
+        server.messenger.unregisterIncomingPluginChannel(this)
+        db?.execute("UPDATE `${dbPrefix}players` SET `last_server` = NULL, `pending_quit` = 0 WHERE `last_server` = ?", serverName)
     }
 }

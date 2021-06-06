@@ -22,6 +22,7 @@ dependencies {
     implementation("com.github.kittinunf.fuel:fuel:2.2.3")
     implementation("me.rayzr522:jsonmessage:1.2.1")
     implementation("commons-codec:commons-codec:1.15")
+    implementation("org.mariadb.jdbc:mariadb-java-client:2.6.0")
 }
 
 tasks {
@@ -36,6 +37,7 @@ tasks {
         relocate("com.github.kittinunf.result", UUID.randomUUID().toString())
         relocate("me.rayzr522.jsonmessage", UUID.randomUUID().toString())
         relocate("org.apache.commons.codec", UUID.randomUUID().toString())
+        relocate("org.mariadb.jdbc", UUID.randomUUID().toString())
 
         minimize()
     }

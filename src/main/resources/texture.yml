@@ -1,1 +1,23 @@
+# データベースの設定はreloadtex不可
+database:
+  host: localhost
+  name: yukitexture
+  user: yukitexture
+  password:
+  # [life1, life2], [pvp1, pvp2] のように複数のグループに分けてプラグインを使いたい場合のみ変更してください
+  # 最後のアンダーバーがなくても動きますがテーブル名が汚くなります
+  prefix: server_
+
+# リソパのURL (reloadtex可)
 url: ''
+
+# server1 <-> server2の移動の場合はリソースパックが送信されない (reloadtex可)
+dontApplyTexture:
+- server1
+- server2
+
+# サーバー名 (reloadtex不可)
+server: server1
+
+# (reloadtex可)
+delay: 5
