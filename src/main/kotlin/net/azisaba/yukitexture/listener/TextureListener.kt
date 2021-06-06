@@ -67,7 +67,7 @@ class TextureListener(private val plugin: YukiTexture) : Listener {
                         e.player.uniqueId.toString(),
                     )
                 }
-            }, 10) // around 1s
+            }, 20) // around 1s
         }
     }
 }
