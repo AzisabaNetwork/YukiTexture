@@ -130,7 +130,7 @@ class YukiTexture : JavaPlugin() {
         val user = yaml.getString("database.user", "yukitexture")
         val password = yaml.getString("database.password")
         dbPrefix = yaml.getString("database.prefix", "server_") ?: "server_"
-        if (host.isNullOrEmpty() || name.isNullOrEmpty() || user.isNullOrEmpty() || password.isNullOrEmpty()) {
+        if (host.isNullOrEmpty() || name.isNullOrEmpty() || user.isNullOrEmpty() || password == null) {
             db = null
             logger.warning("1つ以上のデータベース設定が空です。データベースなしで続行します。")
         } else {
