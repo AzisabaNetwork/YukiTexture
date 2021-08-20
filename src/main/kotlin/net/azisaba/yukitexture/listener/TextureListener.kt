@@ -11,7 +11,7 @@ class TextureListener(private val plugin: YukiTexture) : Listener {
     @EventHandler
     fun onJoin(e: PlayerJoinEvent) {
         if (e.player.hasPermission("yukitexture.receive") && plugin.tex.isNotBlank()) {
-            plugin.server.scheduler.runTaskLaterAsynchronously(plugin, {
+            plugin.server.scheduler.runTaskLaterAsynchronously(plugin, Runnable {
                 plugin.db.let {
                     if (it == null) {
                         plugin.applyTex(e.player)
@@ -33,7 +33,7 @@ class TextureListener(private val plugin: YukiTexture) : Listener {
             }, 1)
         }
         plugin.db?.let {
-            plugin.server.scheduler.runTaskLaterAsynchronously(plugin, {
+            plugin.server.scheduler.runTaskLaterAsynchronously(plugin, Runnable {
                 it.execute(
                     "INSERT INTO `${plugin.dbPrefix}players` (`uuid`, `last_server`) VALUES (?, ?) ON DUPLICATE KEY UPDATE `last_server` = ?, `pending_quit` = 0",
                     e.player.uniqueId.toString(),
@@ -47,15 +47,15 @@ class TextureListener(private val plugin: YukiTexture) : Listener {
     @EventHandler
     fun onQuit(e: PlayerQuitEvent) {
         plugin.db?.let {
-            plugin.server.scheduler.runTaskAsynchronously(plugin) {
+            plugin.server.scheduler.runTaskAsynchronously(plugin, Runnable {
                 it.execute(
                     "INSERT INTO `${plugin.dbPrefix}players` (`uuid`, `last_server`, `pending_quit`) VALUES (?, ?, 1) ON DUPLICATE KEY UPDATE `last_server` = ?, `pending_quit` = 1",
                     e.player.uniqueId.toString(),
                     plugin.serverName,
                     plugin.serverName,
                 )
-            }
-            plugin.server.scheduler.runTaskLaterAsynchronously(plugin, {
+            })
+            plugin.server.scheduler.runTaskLaterAsynchronously(plugin, Runnable {
                 val player = it.findOne(
                     "SELECT `uuid` FROM `${plugin.dbPrefix}players` WHERE `uuid` = ? AND `last_server` = ? AND `pending_quit` = 1",
                     e.player.uniqueId.toString(),

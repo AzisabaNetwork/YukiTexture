@@ -59,7 +59,7 @@ class YukiTexture : JavaPlugin() {
         logger.info("デフォルトのリソースパックを無効化しました。")
 
         val yaml = getTextureConfig(true)
-        tex = yaml.getString("url")
+        tex = yaml.getString("url") ?: ""
         if (tex.isNotBlank()) logger.info("リソースパックのURLを $tex に設定しました。")
 
         // reset sha1 hash so we can re-download the resource pack and calculate the sha1 hash again
@@ -112,7 +112,7 @@ class YukiTexture : JavaPlugin() {
             .title(0, 100, 20, player)
         JSONMessage.create("プレイヤーのリソースパックを変更中...")
             .subtitle(player)
-        player.setResourcePack(tex, sha1)
+        player.setResourcePack(tex, sha1 ?: "")
         JSONMessage.create()
             .then("$prefix ")
             .then("${CC.GREEN}完了しました。")
@@ -124,12 +124,12 @@ class YukiTexture : JavaPlugin() {
         reloadTex()
         DBConnector // load driver
         val yaml = getTextureConfig()
-        serverName = yaml.getString("server")
+        serverName = yaml.getString("server") ?: ""
         val host = yaml.getString("database.host", "localhost")
         val name = yaml.getString("database.name", "yukitexture")
         val user = yaml.getString("database.user", "yukitexture")
         val password = yaml.getString("database.password")
-        dbPrefix = yaml.getString("database.prefix", "server_")
+        dbPrefix = yaml.getString("database.prefix", "server_") ?: "server_"
         if (host.isNullOrEmpty() || name.isNullOrEmpty() || user.isNullOrEmpty() || password.isNullOrEmpty()) {
             db = null
             logger.warning("1つ以上のデータベース設定が空です。データベースなしで続行します。")
@@ -153,8 +153,8 @@ class YukiTexture : JavaPlugin() {
             }
         }
 
-        getCommand("tex").executor = TextureCommand(this)
-        getCommand("reloadtex").executor = ReloadTextureCommand(this)
+        getCommand("tex")?.setExecutor(TextureCommand(this))
+        getCommand("reloadtex")?.setExecutor(ReloadTextureCommand(this))
         server.pluginManager.registerEvents(TextureListener(this), this)
     }
 
