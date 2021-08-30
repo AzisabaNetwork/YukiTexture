@@ -5,6 +5,7 @@ import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.event.player.PlayerQuitEvent
+import java.sql.SQLException
 
 class TextureListener(private val plugin: YukiTexture) : Listener {
 
@@ -17,11 +18,17 @@ class TextureListener(private val plugin: YukiTexture) : Listener {
                         plugin.applyTex(e.player)
                         return@let
                     }
-                    val player = it.findOne(
-                        "SELECT `last_server` FROM `${plugin.dbPrefix}players` WHERE `uuid` = ?",
-                        e.player.uniqueId.toString(),
-                        //plugin.serverName,
-                    )
+                    val player = try {
+                        it.findOne(
+                            "SELECT `last_server` FROM `${plugin.dbPrefix}players` WHERE `uuid` = ?",
+                            e.player.uniqueId.toString(),
+                            //plugin.serverName,
+                        )
+                    } catch (ex: SQLException) {
+                        ex.printStackTrace()
+                        plugin.applyTex(e.player)
+                        return@let
+                    }
                     if (
                         player == null
                         || player["last_server"] == null

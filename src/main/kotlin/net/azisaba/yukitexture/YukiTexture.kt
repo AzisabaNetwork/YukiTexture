@@ -16,6 +16,8 @@ import org.bukkit.plugin.java.JavaPlugin
 import org.joor.Reflect
 import org.mariadb.jdbc.Driver
 import java.sql.SQLException
+import java.util.Timer
+import kotlin.concurrent.scheduleAtFixedRate
 import org.bukkit.ChatColor as CC
 
 class YukiTexture : JavaPlugin() {
@@ -72,7 +74,8 @@ class YukiTexture : JavaPlugin() {
         if (tex.isBlank()) return
 
         // update sha1 hash of resource pack only if sha1 hash is not calculated yet
-        if (sha1 === null) {
+        // but disable this for now
+        if (true || sha1 === null) {
             val (_, response, result) = FuelManager()
                 .addRequestInterceptor { next: (Request) -> Request ->
                     { req: Request ->
@@ -120,6 +123,8 @@ class YukiTexture : JavaPlugin() {
             .send(player)
     }
 
+    private val timer = Timer()
+
     override fun onEnable() {
         reloadTex()
         DBConnector // load driver
@@ -146,6 +151,9 @@ class YukiTexture : JavaPlugin() {
                       PRIMARY KEY (`uuid`)
                     );
                 """.trimIndent())
+                timer.scheduleAtFixedRate(1000L * 60 * 10, 1000L * 60 * 10) {
+                    db?.execute("SELECT 1")
+                }
                 logger.info("データベースに接続しました。")
             } catch (e: SQLException) {
                 logger.warning("データベースに接続できませんでした。データベースなしで続行します。")
