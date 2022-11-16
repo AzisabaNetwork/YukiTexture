@@ -1,12 +1,9 @@
-# データベースの設定はreloadtex不可
-database:
+# Redisの設定はreloadtex不可
+redis:
   host: localhost
-  name: yukitexture
+  config: 6379
   user: yukitexture
-  password:
-  # [life1, life2], [pvp1, pvp2] のように複数のグループに分けてプラグインを使いたい場合のみ変更してください
-  # 最後のアンダーバーがなくても動きますがテーブル名が汚くなります
-  prefix: server_
+  password: ""
 
 # リソパのURL (reloadtex可)
 url: ''
@@ -15,9 +12,3 @@ url: ''
 dontApplyTexture:
 - server1
 - server2
-
-# サーバー名 (reloadtex不可)
-server: server1
-
-# (reloadtex可)
-delay: 5

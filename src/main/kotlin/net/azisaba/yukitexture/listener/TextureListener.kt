@@ -1,80 +1,38 @@
 package net.azisaba.yukitexture.listener
 
+import net.azisaba.yukitexture.PlayerData
 import net.azisaba.yukitexture.YukiTexture
+import org.bukkit.Bukkit
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
+import org.bukkit.event.player.AsyncPlayerPreLoginEvent
 import org.bukkit.event.player.PlayerJoinEvent
-import org.bukkit.event.player.PlayerQuitEvent
-import java.sql.SQLException
+import java.util.Collections
+import java.util.UUID
 
 class TextureListener(private val plugin: YukiTexture) : Listener {
+    private val applyTextureLater = Collections.synchronizedSet(mutableSetOf<UUID>())
 
     @EventHandler
-    fun onJoin(e: PlayerJoinEvent) {
-        if (e.player.hasPermission("yukitexture.receive") && plugin.tex.isNotBlank()) {
-            plugin.server.scheduler.runTaskLaterAsynchronously(plugin, Runnable {
-                plugin.db.let {
-                    if (it == null) {
-                        plugin.applyTex(e.player)
-                        return@let
-                    }
-                    val player = try {
-                        it.findOne(
-                            "SELECT `last_server` FROM `${plugin.dbPrefix}players` WHERE `uuid` = ?",
-                            e.player.uniqueId.toString(),
-                            //plugin.serverName,
-                        )
-                    } catch (ex: SQLException) {
-                        ex.printStackTrace()
-                        plugin.applyTex(e.player)
-                        return@let
-                    }
-                    if (
-                        player == null
-                        || player["last_server"] == null
-                        || !plugin.getTextureConfig().getStringList("dontApplyTexture").contains(player["last_server"])
-                    ) {
-                        plugin.applyTex(e.player)
-                    }
-                }
-            }, 1)
+    fun onPreJoin(e: AsyncPlayerPreLoginEvent) {
+        val data = PlayerData.getByUUID(e.uniqueId)
+        //println("Server of ${data?.username}: " + data?.childServer)
+        if (data != null) {
+            if (!plugin.getTextureConfig().getStringList("dontApplyTexture").contains(data.childServer)) {
+                applyTextureLater.add(e.uniqueId)
+            }
+        } else {
+            applyTextureLater.add(e.uniqueId)
         }
-        plugin.db?.let {
-            plugin.server.scheduler.runTaskLaterAsynchronously(plugin, Runnable {
-                it.execute(
-                    "INSERT INTO `${plugin.dbPrefix}players` (`uuid`, `last_server`) VALUES (?, ?) ON DUPLICATE KEY UPDATE `last_server` = ?, `pending_quit` = 0",
-                    e.player.uniqueId.toString(),
-                    plugin.serverName,
-                    plugin.serverName,
-                )
-            }, plugin.getTextureConfig().getLong("delay", 5))
-        }
+        Bukkit.getScheduler().runTaskLaterAsynchronously(plugin, Runnable {
+            applyTextureLater.remove(e.uniqueId)
+        }, 20L)
     }
 
     @EventHandler
-    fun onQuit(e: PlayerQuitEvent) {
-        plugin.db?.let {
-            plugin.server.scheduler.runTaskAsynchronously(plugin, Runnable {
-                it.execute(
-                    "INSERT INTO `${plugin.dbPrefix}players` (`uuid`, `last_server`, `pending_quit`) VALUES (?, ?, 1) ON DUPLICATE KEY UPDATE `last_server` = ?, `pending_quit` = 1",
-                    e.player.uniqueId.toString(),
-                    plugin.serverName,
-                    plugin.serverName,
-                )
-            })
-            plugin.server.scheduler.runTaskLaterAsynchronously(plugin, Runnable {
-                val player = it.findOne(
-                    "SELECT `uuid` FROM `${plugin.dbPrefix}players` WHERE `uuid` = ? AND `last_server` = ? AND `pending_quit` = 1",
-                    e.player.uniqueId.toString(),
-                    plugin.serverName,
-                )
-                if (player != null) {
-                    it.execute(
-                        "UPDATE `${plugin.dbPrefix}players` SET `last_server` = NULL, `pending_quit` = 0 WHERE `uuid` = ?",
-                        e.player.uniqueId.toString(),
-                    )
-                }
-            }, 20) // around 1s
+    fun onJoin(e: PlayerJoinEvent) {
+        if (e.player.hasPermission("yukitexture.receive") && applyTextureLater.contains(e.player.uniqueId)) {
+            plugin.applyTex(e.player)
         }
     }
 }

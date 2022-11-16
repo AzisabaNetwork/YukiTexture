@@ -7,24 +7,15 @@ import me.rayzr522.jsonmessage.JSONMessage
 import net.azisaba.yukitexture.command.ReloadTextureCommand
 import net.azisaba.yukitexture.command.TextureCommand
 import net.azisaba.yukitexture.listener.TextureListener
-import net.azisaba.yukitexture.sql.DBConnector
 import org.apache.commons.codec.digest.DigestUtils
 import org.bukkit.command.CommandSender
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.entity.Player
 import org.bukkit.plugin.java.JavaPlugin
 import org.joor.Reflect
-import org.mariadb.jdbc.Driver
-import java.sql.SQLException
-import java.util.Timer
-import kotlin.concurrent.scheduleAtFixedRate
 import org.bukkit.ChatColor as CC
 
 class YukiTexture : JavaPlugin() {
-    init {
-        Driver() // Prevent minimize
-    }
-
     private val prefix = "${CC.GRAY}[${CC.RED}$name${CC.GRAY}]${CC.RESET}"
 
     /**
@@ -38,11 +29,9 @@ class YukiTexture : JavaPlugin() {
      */
     private var sha1: String? = null
 
-    var db: DBConnector? = null
-    var dbPrefix = "server_"
+    var jedisBox: JedisBox? = null
 
     private var config: YamlConfiguration? = null
-    var serverName: String = "server"
 
     fun getTextureConfig(reload: Boolean = false): YamlConfiguration {
         if (reload || config == null) {
@@ -64,7 +53,7 @@ class YukiTexture : JavaPlugin() {
         tex = yaml.getString("url") ?: ""
         if (tex.isNotBlank()) logger.info("リソースパックのURLを $tex に設定しました。")
 
-        // reset sha1 hash so we can re-download the resource pack and calculate the sha1 hash again
+        // reset sha1 hash, so we can re-download the resource pack and calculate the sha1 hash again
         sha1 = null
 
         sender?.sendMessage("$prefix ${CC.GREEN}リソースパックのURLを再読み込みしました。")
@@ -123,42 +112,23 @@ class YukiTexture : JavaPlugin() {
             .send(player)
     }
 
-    private val timer = Timer()
-
     override fun onEnable() {
         reloadTex()
-        DBConnector // load driver
         val yaml = getTextureConfig()
-        serverName = yaml.getString("server") ?: ""
-        val host = yaml.getString("database.host", "localhost")
-        val name = yaml.getString("database.name", "yukitexture")
-        val user = yaml.getString("database.user", "yukitexture")
-        val password = yaml.getString("database.password")
-        dbPrefix = yaml.getString("database.prefix", "server_") ?: "server_"
-        if (host.isNullOrEmpty() || name.isNullOrEmpty() || user.isNullOrEmpty() || password == null) {
-            db = null
-            logger.warning("1つ以上のデータベース設定が空です。データベースなしで続行します。")
-        } else {
-            db = DBConnector(host, name, user, password)
-            logger.info("データベースに接続中...")
-            try {
-                db?.connect()
-                db?.execute("""
-                    CREATE TABLE IF NOT EXISTS `${dbPrefix}players` (
-                      `uuid` varchar(36) NOT NULL,
-                      `last_server` varchar(255) DEFAULT NULL,
-                      `pending_quit` tinyint(1) NOT NULL DEFAULT 0,
-                      PRIMARY KEY (`uuid`)
-                    );
-                """.trimIndent())
-                timer.scheduleAtFixedRate(1000L * 60 * 10, 1000L * 60 * 10) {
-                    db?.execute("SELECT 1")
-                }
-                logger.info("データベースに接続しました。")
-            } catch (e: SQLException) {
-                logger.warning("データベースに接続できませんでした。データベースなしで続行します。")
-                e.printStackTrace()
-            }
+        val redis = yaml.getConfigurationSection("redis") ?: error("redis section is missing")
+        val host = redis.getString("host", "localhost")!!
+        val port = redis.getInt("port", 6379)
+        val user = redis.getString("user")
+        val password = redis.getString("password")
+        try {
+            logger.info("Trying $host:$port...")
+            jedisBox = JedisBox(host, port, user, password)
+            jedisBox?.jedisPool?.resource?.use { it.get("something") }
+            logger.info("Redisに接続しました。")
+        } catch (e: Exception) {
+            logger.warning("Redisに接続できませんでした。データベースなしで続行します。")
+            e.printStackTrace()
+            jedisBox = null
         }
 
         getCommand("tex")?.setExecutor(TextureCommand(this))
@@ -169,6 +139,5 @@ class YukiTexture : JavaPlugin() {
     override fun onDisable() {
         server.messenger.unregisterOutgoingPluginChannel(this)
         server.messenger.unregisterIncomingPluginChannel(this)
-        db?.execute("UPDATE `${dbPrefix}players` SET `last_server` = NULL, `pending_quit` = 0 WHERE `last_server` = ?", serverName)
     }
 }
