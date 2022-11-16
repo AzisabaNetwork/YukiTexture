@@ -32,7 +32,9 @@ class TextureListener(private val plugin: YukiTexture) : Listener {
     @EventHandler
     fun onJoin(e: PlayerJoinEvent) {
         if (e.player.hasPermission("yukitexture.receive") && applyTextureLater.contains(e.player.uniqueId)) {
-            plugin.applyTex(e.player)
+            Bukkit.getScheduler().runTaskAsynchronously(plugin, Runnable {
+                plugin.applyTex(e.player)
+            })
         }
     }
 }
