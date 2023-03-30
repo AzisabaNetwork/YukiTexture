@@ -3,10 +3,11 @@ package net.azisaba.yukitexture
 import com.github.kittinunf.fuel.core.FuelManager
 import com.github.kittinunf.fuel.core.Request
 import com.github.kittinunf.result.Result
-import me.rayzr522.jsonmessage.JSONMessage
 import net.azisaba.yukitexture.command.ReloadTextureCommand
 import net.azisaba.yukitexture.command.TextureCommand
 import net.azisaba.yukitexture.listener.TextureListener
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.event.HoverEvent
 import org.apache.commons.codec.digest.DigestUtils
 import org.bukkit.command.CommandSender
 import org.bukkit.configuration.file.YamlConfiguration
@@ -68,48 +69,41 @@ class YukiTexture : JavaPlugin() {
             val (_, response, result) = FuelManager()
                 .addRequestInterceptor { next: (Request) -> Request ->
                     { req: Request ->
-                        JSONMessage.actionbar("${req.url.host} に接続中...", player)
+                        player.sendActionBar(Component.text("${req.url.host} に接続中..."))
                         next(req)
                     }
                 }
                 .get(tex)
                 .responseProgress { readBytes, totalBytes ->
                     val percent = readBytes.toFloat().div(totalBytes).times(100)
-                    JSONMessage.actionbar("リソースパックをダウンロード中... ($percent %)", player)
+                    player.sendActionBar(Component.text("リソースパックをダウンロード中... ($percent %)"))
                 }
                 .response()
-            JSONMessage.create()
-                .then("$prefix レスポンスは ")
-                .then("${response.statusCode} (${response.responseMessage})")
-                .tooltip(buildString {
-                    append("${CC.YELLOW}URL: ${CC.RESET}${response.url}")
-                    append("\n")
-                    append(
-                        response.headers
-                            .entries
-                            .joinToString("\n") {
-                                "${CC.AQUA}${it.key}: ${CC.RESET}${it.value.joinToString(" ")}"
-                            }
-                    )
-                })
-                .then(" です。")
-                .send(player)
+            val joinedHeaders =
+                response.headers
+                    .entries
+                    .joinToString("\n") {
+                        "${CC.AQUA}${it.key}: ${CC.RESET}${it.value.joinToString(" ")}"
+                    }
+            player.sendMessage(
+                Component.text("$prefix レスポンスは ")
+                    .append(Component.text("${response.statusCode} (${response.responseMessage})")
+                        .hoverEvent(HoverEvent.showText(Component.text("${CC.YELLOW}URL: ${CC.RESET}${response.url}\n$joinedHeaders"))))
+                    .append(Component.text("です。"))
+            )
             if (result is Result.Failure) {
                 result.getException().printStackTrace()
                 return
             }
             sha1 = DigestUtils.sha1Hex(result.get())
         }
-        JSONMessage.create()
-            .title(0, 100, 20, player)
-        JSONMessage.create("プレイヤーのリソースパックを変更中...")
-            .subtitle(player)
+        player.sendTitle("", "プレイヤーのリソースパックを変更中...", 0, 100, 20)
         player.setResourcePack(tex, sha1 ?: "")
-        JSONMessage.create()
-            .then("$prefix ")
-            .then("${CC.GREEN}完了しました。")
-            .tooltip("SHA-1: $sha1")
-            .send(player)
+        player.sendMessage(
+            Component.text(prefix)
+                .append(Component.text("${CC.GREEN}完了しました。")
+                    .hoverEvent(HoverEvent.showText(Component.text("SHA-1: $sha1"))))
+        )
     }
 
     override fun onEnable() {
