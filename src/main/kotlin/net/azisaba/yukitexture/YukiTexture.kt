@@ -13,7 +13,6 @@ import org.bukkit.command.CommandSender
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.entity.Player
 import org.bukkit.plugin.java.JavaPlugin
-import org.joor.Reflect
 import org.bukkit.ChatColor as CC
 
 class YukiTexture : JavaPlugin() {
@@ -45,11 +44,6 @@ class YukiTexture : JavaPlugin() {
     }
 
     fun reloadTex(sender: CommandSender? = null) {
-        Reflect.on(server)
-            .call("getServer")
-            .call("setResourcePack", "", "")
-        logger.info("デフォルトのリソースパックを無効化しました。")
-
         val yaml = getTextureConfig(true)
         tex = yaml.getString("url") ?: ""
         if (tex.isNotBlank()) logger.info("リソースパックのURLを $tex に設定しました。")

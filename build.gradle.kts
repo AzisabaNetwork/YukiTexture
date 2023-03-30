@@ -19,7 +19,6 @@ dependencies {
     implementation(kotlin("stdlib"))
     compileOnly("com.destroystokyo.paper:paper-api:1.16.5-R0.1-SNAPSHOT")
     implementation("redis.clients:jedis:4.3.2")
-    implementation("org.jooq:joor-java-8:0.9.13")
     implementation("com.github.kittinunf.fuel:fuel:2.2.3")
     implementation("commons-codec:commons-codec:1.15")
 }
@@ -32,7 +31,6 @@ tasks {
         // JetBrains annotations should not be included in jar
         exclude("org.jetbrains.annotations")
         relocate("kotlin", "net.azisaba.yukitexture.libs.kotlin")
-        relocate("org.joor", "net.azisaba.yukitexture.libs.org.joor")
         relocate("com.github.kittinunf.fuel", "net.azisaba.yukitexture.libs.com.github.kittinunf.fuel")
         relocate("com.github.kittinunf.result", "net.azisaba.yukitexture.libs.com.github.kittinunf.result")
         relocate("org.apache.commons.codec", "net.azisaba.yukitexture.libs.org.apache.commons.codec")
