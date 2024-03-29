@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "net.azisaba"
-version = "3.0.0"
+version = "3.0.1"
 
 java.toolchain.languageVersion.set(JavaLanguageVersion.of(8))
 
@@ -13,6 +13,7 @@ repositories {
     maven("https://jitpack.io/")
     maven("https://papermc.io/repo/repository/maven-public/")
     maven("https://rayzr.dev/repo/")
+    maven("https://repo.viaversion.com/")
 }
 
 dependencies {
@@ -21,6 +22,7 @@ dependencies {
     implementation("redis.clients:jedis:4.3.2")
     implementation("com.github.kittinunf.fuel:fuel:2.2.3")
     implementation("commons-codec:commons-codec:1.15")
+    compileOnly("com.viaversion:viaversion-api:4.9.3")
 }
 
 tasks {

@@ -2,6 +2,8 @@ name: YukiTexture
 version: 3.0.0
 main: net.azisaba.yukitexture.YukiTexture
 api-version: 1.16
+depend:
+  - ViaVersion
 
 author: YukiLeafX
 
