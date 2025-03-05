@@ -1,9 +1,11 @@
 name: YukiTexture
-version: 3.0.0
+version: 3.1.0-1.21.1
 main: net.azisaba.yukitexture.YukiTexture
-api-version: 1.16
+api-version: 1.21
 
-author: YukiLeafX
+author:
+- YukiLeafX
+- sysnote8
 
 commands:
   tex:
