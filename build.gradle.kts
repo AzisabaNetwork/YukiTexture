@@ -1,6 +1,9 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
-    kotlin("jvm") version "2.1.10"
-    id("com.gradleup.shadow") version "9.0.0-beta8"
+    alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.shadow)
 }
 
 group = "net.azisaba.yukitexture"
@@ -17,25 +20,28 @@ repositories {
 
 dependencies {
     implementation(kotlin("stdlib"))
-    compileOnly("io.papermc.paper:paper-api:1.21.1-R0.1-SNAPSHOT")
+    compileOnly(libs.paper.api)
+    implementation(libs.kaml)
+//    compileOnly("io.papermc.paper:paper-api:1.21.1-R0.1-SNAPSHOT")
     implementation("redis.clients:jedis:5.2.0")
     implementation("com.github.kittinunf.fuel:fuel:2.2.3")
     implementation("commons-codec:commons-codec:1.15")
 }
 
-tasks {
-    compileKotlin { kotlinOptions.jvmTarget = "1.8" }
-    compileTestKotlin { kotlinOptions.jvmTarget = "1.8" }
-
-    shadowJar {
-        // JetBrains annotations should not be included in jar
-        exclude("org.jetbrains.annotations")
-        relocate("kotlin", "net.azisaba.yukitexture.libs.kotlin")
-        relocate("com.github.kittinunf.fuel", "net.azisaba.yukitexture.libs.com.github.kittinunf.fuel")
-        relocate("com.github.kittinunf.result", "net.azisaba.yukitexture.libs.com.github.kittinunf.result")
-        relocate("org.apache.commons.codec", "net.azisaba.yukitexture.libs.org.apache.commons.codec")
-        relocate("redis.clients", "net.azisaba.yukitexture.libs.redis.clients")
-
-        minimize()
+kotlin {
+    compilerOptions {
+        jvmTarget = JvmTarget.JVM_21
     }
+}
+
+tasks.shadowJar {
+    relocationPrefix = "net.azisaba.yukitexture.libs"
+    minimize()
+
+    // === Include & Exclude ===
+    // JetBrains annotations should not be included in jar
+    exclude("org.jetbrains.annotations")
+}
+
+shadow {
 }
