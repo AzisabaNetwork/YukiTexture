@@ -5,14 +5,16 @@ import com.github.kittinunf.fuel.core.Request
 import com.github.kittinunf.result.Result
 import net.azisaba.yukitexture.command.ReloadTextureCommand
 import net.azisaba.yukitexture.command.TextureCommand
+import net.azisaba.yukitexture.config.ConfigUtil
+import net.azisaba.yukitexture.config.SecretConfig
+import net.azisaba.yukitexture.config.YukiTextureConfig
 import net.azisaba.yukitexture.listener.TextureListener
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.HoverEvent
 import org.apache.commons.codec.digest.DigestUtils
-import org.bukkit.command.CommandSender
-import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.entity.Player
 import org.bukkit.plugin.java.JavaPlugin
+import java.io.File
 import org.bukkit.ChatColor as CC
 
 class YukiTexture : JavaPlugin() {
@@ -31,28 +33,9 @@ class YukiTexture : JavaPlugin() {
 
     var jedisBox: JedisBox? = null
 
-    private var config: YamlConfiguration? = null
+    private lateinit var config: YukiTextureConfig
 
-    fun getTextureConfig(reload: Boolean = false): YamlConfiguration {
-        if (reload || config == null) {
-            val file = dataFolder.resolve("texture.yml")
-            if (!file.isFile) saveResource(file.name, true)
-            config = YamlConfiguration.loadConfiguration(file)
-            return config!!
-        }
-        return config!!
-    }
-
-    fun reloadTex(sender: CommandSender? = null) {
-        val yaml = getTextureConfig(true)
-        tex = yaml.getString("url") ?: ""
-        if (tex.isNotBlank()) logger.info("リソースパックのURLを $tex に設定しました。")
-
-        // reset sha1 hash, so we can re-download the resource pack and calculate the sha1 hash again
-        sha1 = null
-
-        sender?.sendMessage("$prefix ${CC.GREEN}リソースパックのURLを再読み込みしました。")
-    }
+    internal lateinit var secretConfig: SecretConfig
 
     fun applyTex(player: Player) {
         if (tex.isBlank()) return
@@ -107,13 +90,24 @@ class YukiTexture : JavaPlugin() {
     }
 
     override fun onEnable() {
-        reloadTex()
-        val yaml = getTextureConfig()
-        val redis = yaml.getConfigurationSection("redis") ?: error("redis section is missing")
-        val host = redis.getString("host", "localhost")!!
-        val port = redis.getInt("port", 6379)
-        val user = redis.getString("user")
-        val password = redis.getString("password")
+        val configFile =
+            File(dataFolder, "config.yml").also {
+                ConfigUtil.saveConfig(YukiTextureConfig(), it)
+            }
+        val secretFile =
+            File(dataFolder, "secret.yml").also {
+                ConfigUtil.saveConfig(SecretConfig(), it)
+            }
+
+        // load configurations
+        config = ConfigUtil.loadConfig(YukiTextureConfig.serializer(), configFile)
+        secretConfig = ConfigUtil.loadConfig(SecretConfig.serializer(), secretFile)
+
+        val redis = config.redis
+        val host = redis.host
+        val port = redis.port
+        val user = redis.user
+        val password = redis.password
 
         try {
             logger.info("Trying $host:$port...")
