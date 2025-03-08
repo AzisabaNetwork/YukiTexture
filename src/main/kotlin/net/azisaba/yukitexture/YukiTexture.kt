@@ -60,19 +60,18 @@ class YukiTexture : JavaPlugin() {
         // update sha1 hash of resource pack only if sha1 hash is not calculated yet
         // but disable this for now
         if (true || sha1 === null) {
-            val (_, response, result) = FuelManager()
-                .addRequestInterceptor { next: (Request) -> Request ->
-                    { req: Request ->
-                        player.sendActionBar(Component.text("${req.url.host} に接続中..."))
-                        next(req)
-                    }
-                }
-                .get(tex)
-                .responseProgress { readBytes, totalBytes ->
-                    val percent = readBytes.toFloat().div(totalBytes).times(100)
-                    player.sendActionBar(Component.text("リソースパックをダウンロード中... ($percent %)"))
-                }
-                .response()
+            val (_, response, result) =
+                FuelManager()
+                    .addRequestInterceptor { next: (Request) -> Request ->
+                        { req: Request ->
+                            player.sendActionBar(Component.text("${req.url.host} に接続中..."))
+                            next(req)
+                        }
+                    }.get(tex)
+                    .responseProgress { readBytes, totalBytes ->
+                        val percent = readBytes.toFloat().div(totalBytes).times(100)
+                        player.sendActionBar(Component.text("リソースパックをダウンロード中... ($percent %)"))
+                    }.response()
             val joinedHeaders =
                 response.headers
                     .entries
@@ -80,10 +79,13 @@ class YukiTexture : JavaPlugin() {
                         "${CC.AQUA}${it.key}: ${CC.RESET}${it.value.joinToString(" ")}"
                     }
             player.sendMessage(
-                Component.text("$prefix レスポンスは ")
-                    .append(Component.text("${response.statusCode} (${response.responseMessage})")
-                        .hoverEvent(HoverEvent.showText(Component.text("${CC.YELLOW}URL: ${CC.RESET}${response.url}\n$joinedHeaders"))))
-                    .append(Component.text("です。"))
+                Component
+                    .text("$prefix レスポンスは ")
+                    .append(
+                        Component
+                            .text("${response.statusCode} (${response.responseMessage})")
+                            .hoverEvent(HoverEvent.showText(Component.text("${CC.YELLOW}URL: ${CC.RESET}${response.url}\n$joinedHeaders"))),
+                    ).append(Component.text("です。")),
             )
             if (result is Result.Failure) {
                 result.getException().printStackTrace()
@@ -94,9 +96,13 @@ class YukiTexture : JavaPlugin() {
         player.sendTitle("", "プレイヤーのリソースパックを変更中...", 0, 100, 20)
         player.setResourcePack(tex, sha1 ?: "")
         player.sendMessage(
-            Component.text(prefix)
-                .append(Component.text("${CC.GREEN}完了しました。")
-                    .hoverEvent(HoverEvent.showText(Component.text("SHA-1: $sha1"))))
+            Component
+                .text(prefix)
+                .append(
+                    Component
+                        .text("${CC.GREEN}完了しました。")
+                        .hoverEvent(HoverEvent.showText(Component.text("SHA-1: $sha1"))),
+                ),
         )
     }
 
@@ -108,6 +114,7 @@ class YukiTexture : JavaPlugin() {
         val port = redis.getInt("port", 6379)
         val user = redis.getString("user")
         val password = redis.getString("password")
+
         try {
             logger.info("Trying $host:$port...")
             jedisBox = JedisBox(host, port, user, password)

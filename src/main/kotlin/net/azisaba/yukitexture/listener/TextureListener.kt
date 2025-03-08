@@ -10,13 +10,15 @@ import org.bukkit.event.player.PlayerJoinEvent
 import java.util.Collections
 import java.util.UUID
 
-class TextureListener(private val plugin: YukiTexture) : Listener {
+class TextureListener(
+    private val plugin: YukiTexture,
+) : Listener {
     private val applyTextureLater = Collections.synchronizedSet(mutableSetOf<UUID>())
 
     @EventHandler
     fun onPreJoin(e: AsyncPlayerPreLoginEvent) {
         val data = PlayerData.getByUUID(e.uniqueId)
-        //println("Server of ${data?.username}: " + data?.childServer)
+        // println("Server of ${data?.username}: " + data?.childServer)
         if (data != null) {
             if (!plugin.getTextureConfig().getStringList("dontApplyTexture").contains(data.childServer)) {
                 applyTextureLater.add(e.uniqueId)
@@ -24,17 +26,24 @@ class TextureListener(private val plugin: YukiTexture) : Listener {
         } else {
             applyTextureLater.add(e.uniqueId)
         }
-        Bukkit.getScheduler().runTaskLaterAsynchronously(plugin, Runnable {
-            applyTextureLater.remove(e.uniqueId)
-        }, 20L)
+        Bukkit.getScheduler().runTaskLaterAsynchronously(
+            plugin,
+            Runnable {
+                applyTextureLater.remove(e.uniqueId)
+            },
+            20L,
+        )
     }
 
     @EventHandler
     fun onJoin(e: PlayerJoinEvent) {
         if (e.player.hasPermission("yukitexture.receive") && applyTextureLater.contains(e.player.uniqueId)) {
-            Bukkit.getScheduler().runTaskAsynchronously(plugin, Runnable {
-                plugin.applyTex(e.player)
-            })
+            Bukkit.getScheduler().runTaskAsynchronously(
+                plugin,
+                Runnable {
+                    plugin.applyTex(e.player)
+                },
+            )
         }
     }
 }
