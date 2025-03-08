@@ -20,7 +20,7 @@ class TextureListener(
         val data = PlayerData.getByUUID(e.uniqueId)
         // println("Server of ${data?.username}: " + data?.childServer)
         if (data != null) {
-            if (!plugin.getTextureConfig().getStringList("dontApplyTexture").contains(data.childServer)) {
+            if (!plugin.yukiConfig.dontApplyTexture.contains(data.childServer)) {
                 applyTextureLater.add(e.uniqueId)
             }
         } else {

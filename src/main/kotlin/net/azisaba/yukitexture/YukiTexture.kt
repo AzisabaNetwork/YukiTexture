@@ -33,7 +33,7 @@ class YukiTexture : JavaPlugin() {
 
     var jedisBox: JedisBox? = null
 
-    private lateinit var config: YukiTextureConfig
+    internal lateinit var yukiConfig: YukiTextureConfig
 
     internal lateinit var secretConfig: SecretConfig
 
@@ -100,10 +100,10 @@ class YukiTexture : JavaPlugin() {
             }
 
         // load configurations
-        config = ConfigUtil.loadConfig(YukiTextureConfig.serializer(), configFile)
+        yukiConfig = ConfigUtil.loadConfig(YukiTextureConfig.serializer(), configFile)
         secretConfig = ConfigUtil.loadConfig(SecretConfig.serializer(), secretFile)
 
-        val redis = config.redis
+        val redis = yukiConfig.redis
         val host = redis.host
         val port = redis.port
         val user = redis.user

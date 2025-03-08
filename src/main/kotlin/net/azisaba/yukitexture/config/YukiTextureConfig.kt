@@ -5,6 +5,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class YukiTextureConfig(
     val redis: RedisConfig = RedisConfig(),
+    val dontApplyTexture: List<String> = listOf("child-server-1", "child-server-2"),
 )
 
 @Serializable
