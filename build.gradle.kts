@@ -41,7 +41,7 @@ tasks.test {
 }
 
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain(17)
 }
 
 tasks.shadowJar {
@@ -54,5 +54,5 @@ tasks.shadowJar {
 }
 
 tasks.runServer {
-    minecraftVersion("1.21.1")
+    minecraftVersion("1.16.5")
 }

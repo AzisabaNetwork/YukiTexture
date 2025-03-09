@@ -16,11 +16,15 @@ data class PlayerData(
             plugin: YukiTexture,
             uuid: UUID,
         ): PlayerData? {
-            plugin.jedisBox.also {
-                (it ?: return null).jedisPool.resource.use { jedis ->
-                    val rawData = jedis.get("velocity-redis-bridge:player:$uuid") ?: return null
-                    return gson.fromJson(rawData, PlayerData::class.java)
+            try {
+                plugin.jedisBox.also {
+                    (it ?: return null).jedisPool.resource.use { jedis ->
+                        val rawData = jedis.get("velocity-redis-bridge:player:$uuid") ?: return null
+                        return gson.fromJson(rawData, PlayerData::class.java)
+                    }
                 }
+            } catch (_: Exception) {
+                return null
             }
         }
     }
