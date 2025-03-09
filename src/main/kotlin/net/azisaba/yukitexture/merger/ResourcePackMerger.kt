@@ -23,25 +23,28 @@ class ResourcePackMerger(
         val parsedTargets = mutableListOf<File>()
         targetMap.forEach { key, target ->
             try {
-                if (target.contains(':')) {
-                    val splitTarget = target.split(':')
-                    if (splitTarget.size == 2) {
-                        var repoName: String =
-                            splitTarget[0].split('/').last().run {
-                                substring(0, lastIndexOf('.'))
-                            }
-
-                        val clonePath = File(tempFolder, repoName)
-                        GitUtil.pull(clonePath, splitTarget[0]).fold({
-                            parsedTargets.add(clonePath.resolve(splitTarget[1]))
-                        }) {
-                            LOGGER.error("Failed to pull repository. key: $key", it)
+                if (target.startsWith("https://")) {
+                    val splitPoint = target.lastIndexOf(':')
+                    val url = target.substring(0, splitPoint)
+                    val path = target.substring(splitPoint + 1)
+                    var repoName: String =
+                        url.split('/').last().run {
+                            substring(0, lastIndexOf('.'))
                         }
-                        return@forEach
-                    } else {
-                        LOGGER.warn("Invalid format target. key: $key")
+
+                    val clonePath = File(tempFolder, repoName)
+                    GitUtil.pull(clonePath, url).fold({
+                        LOGGER.info("Pulled!")
+                        parsedTargets.add(File(clonePath.resolve(path), "assets"))
+                    }) {
+                        LOGGER.error("Failed to pull repository. key: $key", it)
                     }
+                    return@forEach
+//                    } else {
+//                        LOGGER.warn("Invalid format target. key: $key")
+//                    }
                 } else {
+                    println("non matched!")
                     parsedTargets.add(pluginsFolder.resolve(target))
                     return@forEach
                 }

@@ -57,6 +57,22 @@ class YukiTextureCommand(
         }
     }
 
+    @Subcommand("validate")
+    @CommandPermission("$PERMISSION_ROOT.validate")
+    fun validate(sender: CommandSender) {
+        sender.sendMessage("Zipping...")
+        val merger = plugin.resourcePackMerger
+        val zipFile =
+            merger.mergeAndZip(
+                merger
+                    .parseTargets(
+                        plugin.yukiConfig.merger.mergeTargets,
+                        plugin.dataFolder.parentFile,
+                    ),
+            )
+        sender.sendMessage("Zip created at ${zipFile.absolutePath}")
+    }
+
     @Subcommand("geturl")
     @CommandPermission("$PERMISSION_ROOT.geturl")
     fun getUrl(sender: CommandSender) {

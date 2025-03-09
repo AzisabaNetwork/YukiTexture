@@ -24,9 +24,11 @@ object GitUtil {
         try {
             val result =
                 Git
-                    .open(targetFolder)
+                    .cloneRepository()
+                    .setURI(remoteUrl)
+                    .setGitDir(targetFolder)
+                    .call()
                     .pull()
-                    .setRemote(remoteUrl)
                     .call()
 
             return if (result.isSuccessful) {

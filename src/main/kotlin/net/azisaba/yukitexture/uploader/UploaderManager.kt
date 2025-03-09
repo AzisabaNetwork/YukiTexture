@@ -37,7 +37,7 @@ object UploaderManager {
 
     suspend fun getUrl(uploaderName: String): Result<String> {
         getUploader(uploaderName).also { uploader ->
-            if (uploader.lastUpdatedAt() == -1L) error("This uploader wasn't uploaded resource pack yet.")
+//            if (uploader.lastUpdatedAt() == -1L) LOGGER.warn("This uploader wasn't uploaded resource pack yet.")
 
             return uploader.getUrl()
         }
