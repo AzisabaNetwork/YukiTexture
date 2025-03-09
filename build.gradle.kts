@@ -12,6 +12,9 @@ repositories {
     maven("https://jitpack.io/")
     maven("https://repo.papermc.io/repository/maven-public/")
     maven("https://rayzr.dev/repo/")
+    maven("https://repo.eclipse.org/content/groups/releases/") {
+        name = "eclipse-repo"
+    }
 }
 
 dependencies {
