@@ -27,3 +27,5 @@ permissions:
     default: true
   yukitexture.command.reloadtex:
     default: op
+  yukitexture.command.yukitexture:
+    default: op
