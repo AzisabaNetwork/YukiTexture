@@ -1,5 +1,6 @@
 package net.azisaba.yukitexture.config
 
+import com.charleskorn.kaml.YamlComment
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -19,7 +20,21 @@ data class RedisConfig(
 )
 
 @Serializable
+data class MergerConfig(
+    @YamlComment(
+        "このマージシステムは、アップローダーが有効化されていると自動的に使用されます。",
+        "サポートしているターゲットは、現在フォルダのみです。",
+        "優先度は上の方が高くなります。(ファイルの競合時に優先的に使用されます。)",
+        "詳しくは、YukiTextureのREADMEを参照してください。",
+    )
+    val mergeTargets: Map<String, String> = mapOf("testpack" to "???/packs/resourcepack.zip"),
+)
+
+@Serializable
 data class UploaderConfig(
     val useUploader: Boolean = false,
+    @YamlComment(
+        "現在、s3のみがサポートされています。",
+    )
     val uploaderType: String = "s3",
 )
