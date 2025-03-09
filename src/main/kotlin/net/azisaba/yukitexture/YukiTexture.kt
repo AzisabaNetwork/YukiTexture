@@ -67,11 +67,15 @@ class YukiTexture : JavaPlugin() {
         // configurations
         configFile =
             File(dataFolder, "config.yml").also {
-                ConfigUtil.saveConfig(YukiTextureConfig(), it)
+                if (!it.exists()) {
+                    ConfigUtil.saveConfig(YukiTextureConfig(), it)
+                }
             }
         secretFile =
             File(dataFolder, "secret.yml").also {
-                ConfigUtil.saveConfig(SecretConfig(), it)
+                if (!it.exists()) {
+                    ConfigUtil.saveConfig(SecretConfig(), it)
+                }
             }
         yukiConfig = ConfigUtil.loadConfig(YukiTextureConfig.serializer(), configFile)
         secretConfig = ConfigUtil.loadConfig(SecretConfig.serializer(), secretFile)
