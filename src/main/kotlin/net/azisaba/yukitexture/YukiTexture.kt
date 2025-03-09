@@ -43,40 +43,40 @@ class YukiTexture : JavaPlugin() {
 
         // update sha1 hash of resource pack only if sha1 hash is not calculated yet
         // but disable this for now
-        if (true || sha1 === null) {
-            val (_, response, result) =
-                FuelManager()
-                    .addRequestInterceptor { next: (Request) -> Request ->
-                        { req: Request ->
-                            player.sendActionBar(Component.text("${req.url.host} に接続中..."))
-                            next(req)
-                        }
-                    }.get(tex)
-                    .responseProgress { readBytes, totalBytes ->
-                        val percent = readBytes.toFloat().div(totalBytes).times(100)
-                        player.sendActionBar(Component.text("リソースパックをダウンロード中... ($percent %)"))
-                    }.response()
-            val joinedHeaders =
-                response.headers
-                    .entries
-                    .joinToString("\n") {
-                        "${CC.AQUA}${it.key}: ${CC.RESET}${it.value.joinToString(" ")}"
+//        if (true || sha1 === null) {
+        val (_, response, result) =
+            FuelManager()
+                .addRequestInterceptor { next: (Request) -> Request ->
+                    { req: Request ->
+                        player.sendActionBar(Component.text("${req.url.host} に接続中..."))
+                        next(req)
                     }
-            player.sendMessage(
-                Component
-                    .text("$prefix レスポンスは ")
-                    .append(
-                        Component
-                            .text("${response.statusCode} (${response.responseMessage})")
-                            .hoverEvent(HoverEvent.showText(Component.text("${CC.YELLOW}URL: ${CC.RESET}${response.url}\n$joinedHeaders"))),
-                    ).append(Component.text("です。")),
-            )
-            if (result is Result.Failure) {
-                result.getException().printStackTrace()
-                return
-            }
-            sha1 = DigestUtils.sha1Hex(result.get())
+                }.get(tex)
+                .responseProgress { readBytes, totalBytes ->
+                    val percent = readBytes.toFloat().div(totalBytes).times(100)
+                    player.sendActionBar(Component.text("リソースパックをダウンロード中... ($percent %)"))
+                }.response()
+        val joinedHeaders =
+            response.headers
+                .entries
+                .joinToString("\n") {
+                    "${CC.AQUA}${it.key}: ${CC.RESET}${it.value.joinToString(" ")}"
+                }
+        player.sendMessage(
+            Component
+                .text("$prefix レスポンスは ")
+                .append(
+                    Component
+                        .text("${response.statusCode} (${response.responseMessage})")
+                        .hoverEvent(HoverEvent.showText(Component.text("${CC.YELLOW}URL: ${CC.RESET}${response.url}\n$joinedHeaders"))),
+                ).append(Component.text("です。")),
+        )
+        if (result is Result.Failure) {
+            result.getException().printStackTrace()
+            return
         }
+        sha1 = DigestUtils.sha1Hex(result.get())
+//        }
         player.sendTitle("", "プレイヤーのリソースパックを変更中...", 0, 100, 20)
         player.setResourcePack(tex, sha1 ?: "")
         player.sendMessage(
