@@ -35,16 +35,11 @@ object UploaderManager {
         }
     }
 
-    fun getUrl(
-        uploaderName: String,
-        callBackFunc: Consumer<Result<String>>,
-    ) {
+    suspend fun getUrl(uploaderName: String): Result<String> {
         getUploader(uploaderName).also { uploader ->
             if (uploader.lastUpdatedAt() == -1L) error("This uploader wasn't uploaded resource pack yet.")
 
-            coroutineScope.launch {
-                callBackFunc.accept(uploader.getUrl())
-            }
+            return uploader.getUrl()
         }
     }
 }
