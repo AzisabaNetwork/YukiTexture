@@ -14,9 +14,7 @@ class ReloadTextureCommand(
         label: String,
         args: Array<String>,
     ): Boolean {
-//        plugin.reloadTex(sender)
-        // FIXME: able to use reload texture from command
-        sender.sendMessage("Temporary disabled.")
+        plugin.reloadConfig()
         return true
     }
 }

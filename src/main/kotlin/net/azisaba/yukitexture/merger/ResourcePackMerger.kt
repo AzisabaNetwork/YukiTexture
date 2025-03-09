@@ -35,17 +35,12 @@ class ResourcePackMerger(
 
                     val clonePath = File(tempFolder, repoName)
                     GitUtil.pull(clonePath, url).fold({
-//                        LOGGER.info("Pulled!")
                         parsedTargets.add(clonePath.resolve(path))
                     }) {
                         LOGGER.error("Failed to pull repository. key: $key", it)
                     }
                     return@forEach
-//                    } else {
-//                        LOGGER.warn("Invalid format target. key: $key")
-//                    }
                 } else {
-//                    println("non matched!")
                     parsedTargets.add(pluginsFolder.resolve(target))
                     return@forEach
                 }
