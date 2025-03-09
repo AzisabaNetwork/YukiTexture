@@ -17,7 +17,7 @@ class TextureListener(
 
     @EventHandler
     fun onPreJoin(e: AsyncPlayerPreLoginEvent) {
-        val data = PlayerData.getByUUID(e.uniqueId)
+        val data = PlayerData.getByUUID(plugin, e.uniqueId)
         // println("Server of ${data?.username}: " + data?.childServer)
         if (data != null) {
             if (!plugin.yukiConfig.dontApplyTexture.contains(data.childServer)) {
