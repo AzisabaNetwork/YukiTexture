@@ -7,23 +7,27 @@ import aws.sdk.kotlin.services.s3.model.PutObjectRequest
 import aws.sdk.kotlin.services.s3.presigners.presignGetObject
 import aws.smithy.kotlin.runtime.content.ByteStream
 import aws.smithy.kotlin.runtime.net.url.Url
+import net.azisaba.yukitexture.config.S3Config
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.time.Duration
 
 class ResourcePackMerger {
-    suspend fun uploadToCloudflareR2(targetFilePath: Path): Result<Url> {
-        val bucketName = Credentials.BUCKET_NAME
-        val objectKey = Credentials.OBJECY_KEY // アップロードするファイル名
-        val cloudflareEndpoint = Credentials.CF_ENDPOINT
+    suspend fun uploadToS3(
+        targetFilePath: Path,
+        credentials: S3Config,
+    ): Result<Url> {
+        val bucketName = credentials.bucketName
+        val objectKey = credentials.objectKey // アップロードするファイル名
+        val cloudflareEndpoint = credentials.endpoint
 
         S3Client {
-            region = Credentials.REGION
+            region = credentials.region
             endpointUrl = Url.parse(cloudflareEndpoint)
             credentialsProvider =
                 StaticCredentialsProvider {
-                    accessKeyId = Credentials.ACCESS_KEY_ID
-                    secretAccessKey = Credentials.ACCESS_SECRET_KEY
+                    accessKeyId = credentials.accessKeyId
+                    secretAccessKey = credentials.secretAccessKey
                 }
         }.use { s3Client ->
 
