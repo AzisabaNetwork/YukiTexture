@@ -32,6 +32,11 @@ data class MergerConfig(
             "testpack" to "???/packs/resourcepack.zip",
             "git-lifepack" to "https://github.com/azisaba/resourcepacks.git:~/life",
         ),
+    // TODO: implement this
+//    @YamlComment(
+//        "packUrlで登録しているリソースパックを追加するかを選ぶことができます。(優先度は自動的に一番上になります。)",
+//    )
+//    val addNormalPack: Boolean = false,
 )
 
 @Serializable
