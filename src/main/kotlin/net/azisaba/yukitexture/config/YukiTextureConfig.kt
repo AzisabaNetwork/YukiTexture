@@ -27,7 +27,11 @@ data class MergerConfig(
         "優先度は上の方が高くなります。(ファイルの競合時に優先的に使用されます。)",
         "詳しくは、YukiTextureのREADMEを参照してください。",
     )
-    val mergeTargets: Map<String, String> = mapOf("testpack" to "???/packs/resourcepack.zip"),
+    val mergeTargets: Map<String, String> =
+        mapOf(
+            "testpack" to "???/packs/resourcepack.zip",
+            "git-lifepack" to "https://github.com/azisaba/resourcepacks.git:~/life",
+        ),
 )
 
 @Serializable
