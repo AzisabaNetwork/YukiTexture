@@ -22,7 +22,7 @@ dependencies {
     implementation(kotlin("stdlib"))
     compileOnly(libs.paper.api)
     implementation(libs.kaml)
-//    compileOnly("io.papermc.paper:paper-api:1.21.1-R0.1-SNAPSHOT")
+    implementation(awssdk.services.s3)
     implementation("redis.clients:jedis:5.2.0")
     implementation("com.github.kittinunf.fuel:fuel:2.2.3")
     implementation("commons-codec:commons-codec:1.15")
