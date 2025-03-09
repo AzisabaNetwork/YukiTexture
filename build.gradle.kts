@@ -1,5 +1,3 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.serialization)
@@ -7,9 +5,7 @@ plugins {
 }
 
 group = "net.azisaba.yukitexture"
-version = "3.1.0-1.21.1"
-
-java.toolchain.languageVersion.set(JavaLanguageVersion.of(21))
+version = "3.1.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
@@ -26,12 +22,12 @@ dependencies {
     implementation("redis.clients:jedis:5.2.0")
     implementation("com.github.kittinunf.fuel:fuel:2.2.3")
     implementation("commons-codec:commons-codec:1.15")
+    implementation("org.eclipse.jgit:org.eclipse.jgit:7.2.0.202502191417-m3")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0")
 }
 
 kotlin {
-    compilerOptions {
-        jvmTarget = JvmTarget.JVM_21
-    }
+    jvmToolchain(21)
 }
 
 tasks.shadowJar {
