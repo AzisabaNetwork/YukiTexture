@@ -4,7 +4,7 @@ import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.api.PullResult
 import java.io.File
 
-class GitUtil {
+object GitUtil {
     fun update(targetFolder: File): Result<PullResult> {
         return try {
             val git = Git.open(targetFolder)
