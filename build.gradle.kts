@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.shadow)
+    id("xyz.jpenilla.run-paper") version "2.3.1"
 }
 
 group = "net.azisaba.yukitexture"
@@ -42,5 +43,6 @@ tasks.shadowJar {
     exclude("org.jetbrains.annotations")
 }
 
-shadow {
+tasks.runServer {
+    minecraftVersion("1.21.1")
 }
