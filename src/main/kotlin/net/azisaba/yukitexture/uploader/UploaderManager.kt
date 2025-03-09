@@ -25,7 +25,7 @@ object UploaderManager {
     private fun getUploader(uploaderName: String): IUploader =
         uploaderMap[uploaderName] ?: error("This uploader wasn't registered. name: $uploaderName")
 
-    private fun upload(
+    fun upload(
         uploaderName: String,
         resourcePackZip: File,
         callBackFunc: Consumer<Result<String>>,

@@ -4,6 +4,8 @@ import com.google.gson.Gson
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
+import net.azisaba.yukitexture.LOGGER
+import net.azisaba.yukitexture.util.GitUtil
 import net.azisaba.yukitexture.util.ZipUtil
 import java.io.File
 import java.io.FileOutputStream
@@ -14,6 +16,42 @@ import java.util.zip.ZipOutputStream
 class ResourcePackMerger(
     private val tempFolder: File,
 ) {
+    fun parseTargets(
+        targetMap: Map<String, String>,
+        pluginsFolder: File,
+    ): List<File> {
+        val parsedTargets = mutableListOf<File>()
+        targetMap.forEach { key, target ->
+            try {
+                if (target.contains(':')) {
+                    val splitTarget = target.split(':')
+                    if (splitTarget.size == 2) {
+                        var repoName: String =
+                            splitTarget[0].split('/').last().run {
+                                substring(0, lastIndexOf('.'))
+                            }
+
+                        val clonePath = File(tempFolder, repoName)
+                        GitUtil.pull(clonePath, splitTarget[0]).fold({
+                            parsedTargets.add(clonePath.resolve(splitTarget[1]))
+                        }) {
+                            LOGGER.error("Failed to pull repository. key: $key", it)
+                        }
+                        return@forEach
+                    } else {
+                        LOGGER.warn("Invalid format target. key: $key")
+                    }
+                } else {
+                    parsedTargets.add(pluginsFolder.resolve(target))
+                    return@forEach
+                }
+            } catch (e: Exception) {
+                LOGGER.error("Failed to parse. key: $key", e)
+            }
+        }
+        return parsedTargets
+    }
+
     fun mergeAndZip(targetDataList: List<File>): File {
         if (tempFolder.exists()) {
             tempFolder.deleteRecursively()

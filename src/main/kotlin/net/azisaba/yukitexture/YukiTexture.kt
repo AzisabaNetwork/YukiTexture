@@ -62,6 +62,8 @@ class YukiTexture : JavaPlugin() {
     private var initialized = false
 
     override fun onEnable() {
+        if (!dataFolder.exists()) dataFolder.mkdirs()
+
         // configurations
         configFile =
             File(dataFolder, "config.yml").also {
