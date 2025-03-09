@@ -27,7 +27,7 @@ class YukiTexture : JavaPlugin() {
 
     /**
      * SHA-1 hash
-     * null means undefined and the resource pack needs to be downloaded before sending request to client.
+     * null means undefined, and the resource pack needs to be downloaded before sending a request to a client.
      */
     private var sha1: String? = null
 
