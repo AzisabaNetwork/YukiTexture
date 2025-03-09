@@ -32,6 +32,12 @@ dependencies {
     implementation("commons-codec:commons-codec:1.15")
     implementation("org.eclipse.jgit:org.eclipse.jgit:7.2.0.202502191417-m3")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0")
+    // https://mvnrepository.com/artifact/io.kotest/kotest-runner-junit5-jvm
+    testImplementation("io.kotest:kotest-runner-junit5-jvm:5.9.1")
+}
+
+tasks.test {
+    useJUnitPlatform()
 }
 
 kotlin {
