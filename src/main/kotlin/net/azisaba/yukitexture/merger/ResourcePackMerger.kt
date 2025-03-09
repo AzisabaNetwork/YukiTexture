@@ -15,6 +15,11 @@ class ResourcePackMerger(
     private val tempFolder: File,
 ) {
     fun mergeAndZip(targetDataList: List<File>): File {
+        if (tempFolder.exists()) {
+            tempFolder.deleteRecursively()
+            tempFolder.mkdirs()
+        }
+
         val folders: MutableList<File> = mutableListOf()
 
         for (targetData in targetDataList) {
@@ -23,7 +28,7 @@ class ResourcePackMerger(
             } else {
                 when (targetData.extension) {
                     "zip" -> {
-                        val unzippedTargetData = File(tempFolder, targetData.nameWithoutExtension)
+                        val unzippedTargetData = File(tempFolder, targetData.nameWithoutExtension).also { it.mkdirs() }
                         ZipUtil.unzip(
                             targetData.toPath(),
                             unzippedTargetData.toPath(),
@@ -39,11 +44,7 @@ class ResourcePackMerger(
         }
 
         // create output folder
-        val outputTempFolder = File(tempFolder, "output")
-        if (outputTempFolder.exists()) {
-            outputTempFolder.deleteRecursively()
-            outputTempFolder.mkdirs()
-        }
+        val outputTempFolder = File(tempFolder, "output").also { it.mkdirs() }
 
         // merge all folders
         mergeAllFolders(folders, outputTempFolder)
