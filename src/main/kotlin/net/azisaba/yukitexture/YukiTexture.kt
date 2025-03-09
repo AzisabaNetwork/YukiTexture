@@ -9,6 +9,7 @@ import net.azisaba.yukitexture.config.ConfigUtil
 import net.azisaba.yukitexture.config.SecretConfig
 import net.azisaba.yukitexture.config.YukiTextureConfig
 import net.azisaba.yukitexture.listener.TextureListener
+import net.azisaba.yukitexture.redis.JedisBox
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.HoverEvent
 import org.apache.commons.codec.digest.DigestUtils
