@@ -8,6 +8,7 @@ data class YukiTextureConfig(
     val packUrl: String = "https://packs.example.com/resourcepack.zip",
     val dontApplyTexture: List<String> = listOf("child-server-1", "child-server-2"),
     val redis: RedisConfig = RedisConfig(),
+    val merger: MergerConfig = MergerConfig(),
     val uploader: UploaderConfig = UploaderConfig(),
 )
 
