@@ -6,7 +6,7 @@ import aws.sdk.kotlin.services.s3.model.PutObjectRequest
 import aws.sdk.kotlin.services.s3.presigners.presignGetObject
 import aws.smithy.kotlin.runtime.content.ByteStream
 import net.azisaba.yukitexture.config.S3Config
-import net.azisaba.yukitexture.of
+import net.azisaba.yukitexture.extension.of
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.time.Duration

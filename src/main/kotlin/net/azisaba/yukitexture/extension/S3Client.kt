@@ -1,4 +1,4 @@
-package net.azisaba.yukitexture
+package net.azisaba.yukitexture.extension
 
 import aws.sdk.kotlin.runtime.auth.credentials.StaticCredentialsProvider
 import aws.sdk.kotlin.services.s3.S3Client
