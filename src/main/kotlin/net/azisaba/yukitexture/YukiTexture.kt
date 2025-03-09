@@ -1,8 +1,10 @@
 package net.azisaba.yukitexture
 
+import co.aikar.commands.PaperCommandManager
 import kotlinx.coroutines.runBlocking
 import net.azisaba.yukitexture.command.ReloadTextureCommand
 import net.azisaba.yukitexture.command.TextureCommand
+import net.azisaba.yukitexture.command.YukiTextureCommand
 import net.azisaba.yukitexture.config.ConfigUtil
 import net.azisaba.yukitexture.config.SecretConfig
 import net.azisaba.yukitexture.config.YukiTextureConfig
@@ -51,13 +53,21 @@ class YukiTexture : JavaPlugin() {
 
     internal lateinit var resourcePackMerger: ResourcePackMerger
 
+    internal lateinit var configFile: File
+
+    internal lateinit var secretFile: File
+
+    internal lateinit var commandManager: PaperCommandManager
+
+    private var initialized = false
+
     override fun onEnable() {
         // configurations
-        val configFile =
+        configFile =
             File(dataFolder, "config.yml").also {
                 ConfigUtil.saveConfig(YukiTextureConfig(), it)
             }
-        val secretFile =
+        secretFile =
             File(dataFolder, "secret.yml").also {
                 ConfigUtil.saveConfig(SecretConfig(), it)
             }
@@ -80,6 +90,9 @@ class YukiTexture : JavaPlugin() {
         getCommand("tex")?.setExecutor(TextureCommand(this))
         getCommand("reloadtex")?.setExecutor(ReloadTextureCommand(this))
 
+        commandManager = PaperCommandManager(this)
+        commandManager.registerCommand(YukiTextureCommand(this))
+
         // event listeners
         registerEvents(TextureListener(this))
 
@@ -97,11 +110,23 @@ class YukiTexture : JavaPlugin() {
                 mkdirs()
                 ResourcePackMerger(File(dataFolder, "temp"))
             }
+
+        initialized = true
     }
 
     override fun onDisable() {
         server.messenger.unregisterOutgoingPluginChannel(this)
         server.messenger.unregisterIncomingPluginChannel(this)
+
+        if (initialized) {
+            commandManager.unregisterCommands()
+        }
+        initialized = false
+    }
+
+    override fun reloadConfig() {
+        yukiConfig = ConfigUtil.loadConfig(YukiTextureConfig.serializer(), configFile)
+        secretConfig = ConfigUtil.loadConfig(SecretConfig.serializer(), secretFile)
     }
 
     fun applyTex(player: Player) {

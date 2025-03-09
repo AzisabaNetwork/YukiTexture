@@ -16,6 +16,9 @@ commands:
   reloadtex:
     description: リソースパックを再読み込みします。
     permission: yukitexture.command.reloadtex
+  yukitexture:
+    description: YukiTextureの操作用コマンドです。
+    permission: yukitexture.command.yukitexture
 
 permissions:
   yukitexture.receive:
