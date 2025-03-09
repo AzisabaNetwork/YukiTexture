@@ -1,7 +1,7 @@
 package net.azisaba.yukitexture.listener
 
-import net.azisaba.yukitexture.PlayerData
 import net.azisaba.yukitexture.YukiTexture
+import net.azisaba.yukitexture.model.PlayerData
 import org.bukkit.Bukkit
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener

@@ -1,6 +1,7 @@
-package net.azisaba.yukitexture
+package net.azisaba.yukitexture.model
 
 import com.google.gson.Gson
+import net.azisaba.yukitexture.YukiTexture
 import java.util.UUID
 
 data class PlayerData(
