@@ -2,6 +2,7 @@ package net.azisaba.yukitexture.config
 
 import com.charleskorn.kaml.YamlComment
 import kotlinx.serialization.Serializable
+import net.azisaba.yukitexture.merger.PackData
 
 @Serializable
 data class YukiTextureConfig(
@@ -33,15 +34,15 @@ data class MergerConfig(
             "testpack" to "???/packs/resourcepack.zip",
             "git-lifepack" to "https://github.com/azisaba/resourcepacks.git:~/life",
         ),
-    // TODO: implement this
-//    @YamlComment(
-//        "packUrlで登録しているリソースパックを追加するかを選ぶことができます。(優先度は自動的に一番上になります。)",
-//    )
-//    val addNormalPack: Boolean = false,
+    @YamlComment("pack.mcmetaの設定")
+    val packData: PackData = PackData(6, "Auto generated resource pack"),
 )
 
 @Serializable
 data class UploaderConfig(
+    @YamlComment(
+        "trueにすると、自動的にマージシステムも有効化されます。",
+    )
     val useUploader: Boolean = false,
     @YamlComment(
         "現在、s3のみがサポートされています。",

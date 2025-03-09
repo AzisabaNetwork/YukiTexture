@@ -4,6 +4,7 @@ import com.google.gson.Gson
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
+import kotlinx.serialization.json.Json
 import net.azisaba.yukitexture.LOGGER
 import net.azisaba.yukitexture.util.GitUtil
 import net.azisaba.yukitexture.util.ZipUtil
@@ -35,7 +36,7 @@ class ResourcePackMerger(
                     val clonePath = File(tempFolder, repoName)
                     GitUtil.pull(clonePath, url).fold({
                         LOGGER.info("Pulled!")
-                        parsedTargets.add(File(clonePath.resolve(path), "assets"))
+                        parsedTargets.add(clonePath.resolve(path))
                     }) {
                         LOGGER.error("Failed to pull repository. key: $key", it)
                     }
@@ -55,9 +56,11 @@ class ResourcePackMerger(
         return parsedTargets
     }
 
-    fun mergeAndZip(targetDataList: List<File>): File {
-        if (tempFolder.exists()) {
-            tempFolder.deleteRecursively()
+    fun mergeAndZip(
+        targetDataList: List<File>,
+        packData: PackData,
+    ): File {
+        if (!tempFolder.exists()) {
             tempFolder.mkdirs()
         }
 
@@ -69,7 +72,13 @@ class ResourcePackMerger(
             } else {
                 when (targetData.extension) {
                     "zip" -> {
-                        val unzippedTargetData = File(tempFolder, targetData.nameWithoutExtension).also { it.mkdirs() }
+                        val unzippedTargetData =
+                            File(tempFolder, targetData.nameWithoutExtension).also {
+                                if (it.exists()) {
+                                    it.deleteRecursively()
+                                }
+                                it.mkdirs()
+                            }
                         ZipUtil.unzip(
                             targetData.toPath(),
                             unzippedTargetData.toPath(),
@@ -85,10 +94,20 @@ class ResourcePackMerger(
         }
 
         // create output folder
-        val outputTempFolder = File(tempFolder, "output").also { it.mkdirs() }
+        val outputTempFolder = File(tempFolder, "output")
+        if (outputTempFolder.exists()) {
+            outputTempFolder.deleteRecursively()
+            outputTempFolder.mkdirs()
+        }
 
         // merge all folders
         mergeAllFolders(folders, outputTempFolder)
+
+        val packMetaData = PackMetaData(packData)
+        File(outputTempFolder, "pack.mcmeta")
+            .writeText(
+                Json.encodeToString(packMetaData),
+            )
 
         // create a zip file
         val zipFile = File(tempFolder, "output.zip")

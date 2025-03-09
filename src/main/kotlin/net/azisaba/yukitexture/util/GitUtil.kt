@@ -20,13 +20,21 @@ object GitUtil {
     ): Result<PullResult> {
         if (!targetFolder.exists()) {
             targetFolder.mkdirs()
+        } else {
+            update(targetFolder).also {
+                if (it.isSuccess) {
+                    return it
+                }
+            }
+            targetFolder.deleteRecursively()
+            targetFolder.mkdirs()
         }
         try {
             val result =
                 Git
                     .cloneRepository()
                     .setURI(remoteUrl)
-                    .setGitDir(targetFolder)
+                    .setDirectory(targetFolder)
                     .call()
                     .pull()
                     .call()

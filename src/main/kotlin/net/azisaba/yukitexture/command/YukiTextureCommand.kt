@@ -41,6 +41,7 @@ class YukiTextureCommand(
                         plugin.yukiConfig.merger.mergeTargets,
                         plugin.dataFolder.parentFile,
                     ),
+                plugin.yukiConfig.merger.packData,
             )
 
         sender.sendMessage("Uploading...")
@@ -62,13 +63,17 @@ class YukiTextureCommand(
     fun validate(sender: CommandSender) {
         sender.sendMessage("Zipping...")
         val merger = plugin.resourcePackMerger
+        val targets =
+            merger
+                .parseTargets(
+                    plugin.yukiConfig.merger.mergeTargets,
+                    plugin.dataFolder.parentFile,
+                )
+        println(targets.joinToString(", "))
         val zipFile =
             merger.mergeAndZip(
-                merger
-                    .parseTargets(
-                        plugin.yukiConfig.merger.mergeTargets,
-                        plugin.dataFolder.parentFile,
-                    ),
+                targets,
+                plugin.yukiConfig.merger.packData,
             )
         sender.sendMessage("Zip created at ${zipFile.absolutePath}")
     }
