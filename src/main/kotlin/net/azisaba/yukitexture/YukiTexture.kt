@@ -8,6 +8,7 @@ import net.azisaba.yukitexture.config.SecretConfig
 import net.azisaba.yukitexture.config.YukiTextureConfig
 import net.azisaba.yukitexture.extension.registerEvents
 import net.azisaba.yukitexture.listener.TextureListener
+import net.azisaba.yukitexture.merger.ResourcePackMerger
 import net.azisaba.yukitexture.redis.JedisBox
 import net.azisaba.yukitexture.uploader.S3Uploader
 import net.azisaba.yukitexture.uploader.UploaderManager
@@ -47,6 +48,61 @@ class YukiTexture : JavaPlugin() {
     internal lateinit var yukiConfig: YukiTextureConfig
 
     internal lateinit var secretConfig: SecretConfig
+
+    internal lateinit var resourcePackMerger: ResourcePackMerger
+
+    override fun onEnable() {
+        // configurations
+        val configFile =
+            File(dataFolder, "config.yml").also {
+                ConfigUtil.saveConfig(YukiTextureConfig(), it)
+            }
+        val secretFile =
+            File(dataFolder, "secret.yml").also {
+                ConfigUtil.saveConfig(SecretConfig(), it)
+            }
+        yukiConfig = ConfigUtil.loadConfig(YukiTextureConfig.serializer(), configFile)
+        secretConfig = ConfigUtil.loadConfig(SecretConfig.serializer(), secretFile)
+
+        // connect redis
+        val redis = yukiConfig.redis
+        try {
+            logger.info("Trying ${redis.host}:${redis.port}...")
+            jedisBox = JedisBox(redis.host, redis.port, redis.user, redis.password)
+            jedisBox?.jedisPool?.resource?.use { it.get("something") }
+            logger.info("Redisに接続しました。")
+        } catch (e: Exception) {
+            logger.warning("Redisに接続できませんでした。データベースなしで続行します。")
+            e.printStackTrace()
+        }
+
+        // commands
+        getCommand("tex")?.setExecutor(TextureCommand(this))
+        getCommand("reloadtex")?.setExecutor(ReloadTextureCommand(this))
+
+        // event listeners
+        registerEvents(TextureListener(this))
+
+        // register uploader
+        UploaderManager.registerUploader(
+            "s3",
+            S3Uploader(secretConfig.s3),
+        )
+
+        // set s3 as default uploader
+        uploaderName = yukiConfig.uploader.uploaderType
+
+        resourcePackMerger =
+            File(dataFolder, "temp").run {
+                mkdirs()
+                ResourcePackMerger(File(dataFolder, "temp"))
+            }
+    }
+
+    override fun onDisable() {
+        server.messenger.unregisterOutgoingPluginChannel(this)
+        server.messenger.unregisterIncomingPluginChannel(this)
+    }
 
     fun applyTex(player: Player) {
         val textureUrl: String =
@@ -95,52 +151,5 @@ class YukiTexture : JavaPlugin() {
                         .hoverEvent(HoverEvent.showText(Component.text("SHA-1: $textureHash"))),
                 ),
         )
-    }
-
-    override fun onEnable() {
-        // configurations
-        val configFile =
-            File(dataFolder, "config.yml").also {
-                ConfigUtil.saveConfig(YukiTextureConfig(), it)
-            }
-        val secretFile =
-            File(dataFolder, "secret.yml").also {
-                ConfigUtil.saveConfig(SecretConfig(), it)
-            }
-        yukiConfig = ConfigUtil.loadConfig(YukiTextureConfig.serializer(), configFile)
-        secretConfig = ConfigUtil.loadConfig(SecretConfig.serializer(), secretFile)
-
-        // connect redis
-        val redis = yukiConfig.redis
-        try {
-            logger.info("Trying ${redis.host}:${redis.port}...")
-            jedisBox = JedisBox(redis.host, redis.port, redis.user, redis.password)
-            jedisBox?.jedisPool?.resource?.use { it.get("something") }
-            logger.info("Redisに接続しました。")
-        } catch (e: Exception) {
-            logger.warning("Redisに接続できませんでした。データベースなしで続行します。")
-            e.printStackTrace()
-        }
-
-        // commands
-        getCommand("tex")?.setExecutor(TextureCommand(this))
-        getCommand("reloadtex")?.setExecutor(ReloadTextureCommand(this))
-
-        // event listeners
-        registerEvents(TextureListener(this))
-
-        // register uploader
-        UploaderManager.registerUploader(
-            "s3",
-            S3Uploader(secretConfig.s3),
-        )
-
-        // set s3 as default uploader
-        uploaderName = yukiConfig.uploader.uploaderType
-    }
-
-    override fun onDisable() {
-        server.messenger.unregisterOutgoingPluginChannel(this)
-        server.messenger.unregisterIncomingPluginChannel(this)
     }
 }
