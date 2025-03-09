@@ -16,12 +16,16 @@ repositories {
     maven("https://repo.eclipse.org/content/groups/releases/") {
         name = "eclipse-repo"
     }
+    maven("https://repo.aikar.co/content/groups/aikar/") {
+        name = "aikar-repo"
+    }
 }
 
 dependencies {
     implementation(kotlin("stdlib"))
     compileOnly(libs.paper.api)
     implementation(libs.kaml)
+    implementation(libs.acf.paper)
     implementation(awssdk.services.s3)
     implementation("redis.clients:jedis:5.2.0")
     implementation("com.github.kittinunf.fuel:fuel:2.2.3")
