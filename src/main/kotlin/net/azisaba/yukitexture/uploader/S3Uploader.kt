@@ -29,7 +29,7 @@ class S3Uploader(
                 val response = s3Client.putObject(putObjectRequest)
 
                 lastUpdated = System.currentTimeMillis()
-                return Result.success(response.checksumSha256 ?: "")
+                return Result.success(response.checksumSha1 ?: "")
             } catch (e: Exception) {
                 return Result.failure(e)
             }

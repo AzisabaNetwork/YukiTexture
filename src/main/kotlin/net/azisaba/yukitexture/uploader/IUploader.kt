@@ -7,7 +7,7 @@ interface IUploader {
      * Upload file
      *
      * @param targetFilePath upload file
-     * @return if success, sha256 hash (if not provided, return empty).
+     * @return if success, sha1 hash (if not provided, return empty).
      */
     suspend fun upload(targetFilePath: Path): Result<String>
 
