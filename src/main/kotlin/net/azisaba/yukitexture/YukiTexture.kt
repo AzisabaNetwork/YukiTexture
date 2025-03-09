@@ -1,96 +1,104 @@
 package net.azisaba.yukitexture
 
-import com.github.kittinunf.fuel.core.FuelManager
-import com.github.kittinunf.fuel.core.Request
-import com.github.kittinunf.result.Result
+import kotlinx.coroutines.runBlocking
 import net.azisaba.yukitexture.command.ReloadTextureCommand
 import net.azisaba.yukitexture.command.TextureCommand
 import net.azisaba.yukitexture.config.ConfigUtil
 import net.azisaba.yukitexture.config.SecretConfig
 import net.azisaba.yukitexture.config.YukiTextureConfig
+import net.azisaba.yukitexture.extension.registerEvents
 import net.azisaba.yukitexture.listener.TextureListener
 import net.azisaba.yukitexture.redis.JedisBox
+import net.azisaba.yukitexture.uploader.S3Uploader
+import net.azisaba.yukitexture.uploader.UploaderManager
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.HoverEvent
+import net.kyori.adventure.text.format.NamedTextColor
 import org.apache.commons.codec.digest.DigestUtils
 import org.bukkit.entity.Player
 import org.bukkit.plugin.java.JavaPlugin
 import java.io.File
+import java.net.URI
+import java.net.http.HttpClient
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
+import java.time.Duration
 import org.bukkit.ChatColor as CC
 
 class YukiTexture : JavaPlugin() {
     private val prefix = "${CC.GRAY}[${CC.RED}$name${CC.GRAY}]${CC.RESET}"
 
     /**
-     * Texture pack URL
+     * Http client to get resource pack from web storage
      */
-    lateinit var tex: String
+    internal val httpClient =
+        HttpClient
+            .newBuilder()
+            .connectTimeout(Duration.ofSeconds(5))
+            .build()
+
+    internal var jedisBox: JedisBox? = null
 
     /**
-     * SHA-1 hash
-     * null means undefined, and the resource pack needs to be downloaded before sending a request to a client.
+     * Name of uploader to store resource pack
      */
-    private var sha1: String? = null
-
-    var jedisBox: JedisBox? = null
+    internal var uploaderName = ""
 
     internal lateinit var yukiConfig: YukiTextureConfig
 
     internal lateinit var secretConfig: SecretConfig
 
     fun applyTex(player: Player) {
-        if (tex.isBlank()) return
-
-        // update sha1 hash of resource pack only if sha1 hash is not calculated yet
-        // but disable this for now
-//        if (true || sha1 === null) {
-        val (_, response, result) =
-            FuelManager()
-                .addRequestInterceptor { next: (Request) -> Request ->
-                    { req: Request ->
-                        player.sendActionBar(Component.text("${req.url.host} に接続中..."))
-                        next(req)
+        val textureUrl: String =
+            if (yukiConfig.uploader.useUploader) {
+                runBlocking {
+                    UploaderManager.getUrl(uploaderName).fold({
+                        return@runBlocking it
+                    }) {
+                        player.sendMessage(
+                            Component.text("テクスチャのURL取得に失敗しました。運営にお問い合わせください。").color(
+                                NamedTextColor.RED,
+                            ),
+                        )
+                        error("Failed to get url from uploader $it")
                     }
-                }.get(tex)
-                .responseProgress { readBytes, totalBytes ->
-                    val percent = readBytes.toFloat().div(totalBytes).times(100)
-                    player.sendActionBar(Component.text("リソースパックをダウンロード中... ($percent %)"))
-                }.response()
-        val joinedHeaders =
-            response.headers
-                .entries
-                .joinToString("\n") {
-                    "${CC.AQUA}${it.key}: ${CC.RESET}${it.value.joinToString(" ")}"
                 }
-        player.sendMessage(
-            Component
-                .text("$prefix レスポンスは ")
-                .append(
-                    Component
-                        .text("${response.statusCode} (${response.responseMessage})")
-                        .hoverEvent(HoverEvent.showText(Component.text("${CC.YELLOW}URL: ${CC.RESET}${response.url}\n$joinedHeaders"))),
-                ).append(Component.text("です。")),
-        )
-        if (result is Result.Failure) {
-            result.getException().printStackTrace()
-            return
-        }
-        sha1 = DigestUtils.sha1Hex(result.get())
-//        }
+            } else {
+                yukiConfig.packUrl
+            }
+
+        var textureHash = ""
+        httpClient
+            .send(
+                HttpRequest.newBuilder(URI.create(textureUrl)).GET().build(),
+                HttpResponse.BodyHandlers.ofInputStream(),
+            ).also {
+                if (it.statusCode() != 200) {
+                    player.sendMessage(Component.text("テクスチャの取得に失敗しました。運営にお問い合わせください。"))
+                    logger.info("Failed to request. status code: ${it.statusCode()}")
+                    return
+                }
+
+                textureHash = DigestUtils.sha1Hex(it.body())
+            }
+
         player.sendTitle("", "プレイヤーのリソースパックを変更中...", 0, 100, 20)
-        player.setResourcePack(tex, sha1 ?: "")
+        player.setResourcePack(textureUrl.toString(), textureHash)
+
+        // complete message
         player.sendMessage(
             Component
                 .text(prefix)
                 .append(
                     Component
                         .text("${CC.GREEN}完了しました。")
-                        .hoverEvent(HoverEvent.showText(Component.text("SHA-1: $sha1"))),
+                        .hoverEvent(HoverEvent.showText(Component.text("SHA-1: $textureHash"))),
                 ),
         )
     }
 
     override fun onEnable() {
+        // configurations
         val configFile =
             File(dataFolder, "config.yml").also {
                 ConfigUtil.saveConfig(YukiTextureConfig(), it)
@@ -99,31 +107,36 @@ class YukiTexture : JavaPlugin() {
             File(dataFolder, "secret.yml").also {
                 ConfigUtil.saveConfig(SecretConfig(), it)
             }
-
-        // load configurations
         yukiConfig = ConfigUtil.loadConfig(YukiTextureConfig.serializer(), configFile)
         secretConfig = ConfigUtil.loadConfig(SecretConfig.serializer(), secretFile)
 
+        // connect redis
         val redis = yukiConfig.redis
-        val host = redis.host
-        val port = redis.port
-        val user = redis.user
-        val password = redis.password
-
         try {
-            logger.info("Trying $host:$port...")
-            jedisBox = JedisBox(host, port, user, password)
+            logger.info("Trying ${redis.host}:${redis.port}...")
+            jedisBox = JedisBox(redis.host, redis.port, redis.user, redis.password)
             jedisBox?.jedisPool?.resource?.use { it.get("something") }
             logger.info("Redisに接続しました。")
         } catch (e: Exception) {
             logger.warning("Redisに接続できませんでした。データベースなしで続行します。")
             e.printStackTrace()
-            jedisBox = null
         }
 
+        // commands
         getCommand("tex")?.setExecutor(TextureCommand(this))
         getCommand("reloadtex")?.setExecutor(ReloadTextureCommand(this))
-        server.pluginManager.registerEvents(TextureListener(this), this)
+
+        // event listeners
+        registerEvents(TextureListener(this))
+
+        // register uploader
+        UploaderManager.registerUploader(
+            "s3",
+            S3Uploader(secretConfig.s3),
+        )
+
+        // set s3 as default uploader
+        uploaderName = yukiConfig.uploader.uploaderType
     }
 
     override fun onDisable() {
