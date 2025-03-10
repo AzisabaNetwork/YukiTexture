@@ -92,8 +92,8 @@ class ResourcePackMerger(
         val outputTempFolder = File(tempFolder, "output")
         if (outputTempFolder.exists()) {
             outputTempFolder.deleteRecursively()
-            outputTempFolder.mkdirs()
         }
+        outputTempFolder.mkdirs()
 
         // merge all folders
         mergeAllFolders(folders, outputTempFolder)
@@ -146,7 +146,7 @@ class ResourcePackMerger(
         if (from.isDirectory) {
             // is folder
             val sourceFolder = File(to, from.name)
-            sourceFolder.mkdir()
+            sourceFolder.mkdirs()
 //            println("Searching $from")
 
             // file walk
