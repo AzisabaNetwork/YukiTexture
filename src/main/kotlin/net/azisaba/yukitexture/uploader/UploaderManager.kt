@@ -4,6 +4,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import org.jetbrains.annotations.VisibleForTesting
 import java.io.File
 import java.util.function.Consumer
 
@@ -22,7 +23,8 @@ object UploaderManager {
         uploaderMap.remove(uploaderName)
     }
 
-    private fun getUploader(uploaderName: String): IUploader =
+    @VisibleForTesting
+    fun getUploader(uploaderName: String): IUploader =
         uploaderMap[uploaderName] ?: error("This uploader wasn't registered. name: $uploaderName")
 
     fun upload(
