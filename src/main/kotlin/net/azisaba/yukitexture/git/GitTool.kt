@@ -1,11 +1,11 @@
-package net.azisaba.yukitexture.util
+package net.azisaba.yukitexture.git
 
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.api.PullResult
 import java.io.File
 
-object GitUtil {
-    fun update(targetFolder: File): Result<PullResult> {
+class GitTool : IGitTool {
+    override fun update(targetFolder: File): Result<PullResult> {
         return try {
             val git = Git.open(targetFolder)
             return Result.success(git.pull().call())
@@ -14,7 +14,7 @@ object GitUtil {
         }
     }
 
-    fun pull(
+    override fun pull(
         targetFolder: File,
         remoteUrl: String,
     ): Result<PullResult> {

@@ -6,7 +6,8 @@ import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import kotlinx.serialization.json.Json
 import net.azisaba.yukitexture.LOGGER
-import net.azisaba.yukitexture.util.GitUtil
+import net.azisaba.yukitexture.git.GitTool
+import net.azisaba.yukitexture.git.IGitTool
 import net.azisaba.yukitexture.util.ZipUtil
 import java.io.File
 import java.io.FileOutputStream
@@ -20,6 +21,7 @@ class ResourcePackMerger(
     fun parseTargets(
         targetMap: Map<String, String>,
         pluginsFolder: File,
+        gitTool: IGitTool = DEFAULT_GIT_TOOL,
     ): List<File> {
         val parsedTargets = mutableListOf<File>()
         targetMap.forEach { key, target ->
@@ -34,7 +36,7 @@ class ResourcePackMerger(
                         }
 
                     val clonePath = File(tempFolder, repoName)
-                    GitUtil.pull(clonePath, url).fold({
+                    gitTool.pull(clonePath, url).fold({
                         parsedTargets.add(clonePath.resolve(path))
                     }) {
                         LOGGER.error("Failed to pull repository. key: $key", it)
@@ -233,5 +235,9 @@ class ResourcePackMerger(
             }
         }
         return base
+    }
+
+    companion object {
+        private val DEFAULT_GIT_TOOL: IGitTool = GitTool()
     }
 }
