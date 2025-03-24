@@ -1,2 +1,13 @@
-rootProject.name = "YukiTexture"
+dependencyResolutionManagement {
+    repositories {
+        mavenCentral()
+    }
 
+    versionCatalogs {
+        create("awssdk") {
+            from("aws.sdk.kotlin:version-catalog:1.4.35")
+        }
+    }
+}
+
+rootProject.name = "YukiTexture"

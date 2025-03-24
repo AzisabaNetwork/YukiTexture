@@ -1,9 +1,12 @@
 name: YukiTexture
-version: 3.0.0
+version: 3.1.0-1.21.1
 main: net.azisaba.yukitexture.YukiTexture
 api-version: 1.16
 
-author: YukiLeafX
+author:
+- YukiLeafX
+- acrylic-style
+- sysnote8
 
 commands:
   tex:
@@ -13,6 +16,9 @@ commands:
   reloadtex:
     description: リソースパックを再読み込みします。
     permission: yukitexture.command.reloadtex
+  yukitexture:
+    description: YukiTextureの操作用コマンドです。
+    permission: yukitexture.command.yukitexture
 
 permissions:
   yukitexture.receive:
@@ -20,4 +26,6 @@ permissions:
   yukitexture.command.texture:
     default: true
   yukitexture.command.reloadtex:
+    default: op
+  yukitexture.command.yukitexture:
     default: op

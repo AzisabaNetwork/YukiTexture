@@ -1,41 +1,58 @@
 plugins {
-    kotlin("jvm") version "1.7.21"
-    id("com.github.johnrengelman.shadow") version "7.1.2"
+    alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.shadow)
+    id("xyz.jpenilla.run-paper") version "2.3.1"
 }
 
-group = "net.azisaba"
-version = "3.0.2"
-
-java.toolchain.languageVersion.set(JavaLanguageVersion.of(8))
+group = "net.azisaba.yukitexture"
+version = "3.1.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
     maven("https://jitpack.io/")
-    maven("https://papermc.io/repo/repository/maven-public/")
+    maven("https://repo.papermc.io/repository/maven-public/")
     maven("https://rayzr.dev/repo/")
+    maven("https://repo.eclipse.org/content/groups/releases/") {
+        name = "eclipse-repo"
+    }
+    maven("https://repo.aikar.co/content/groups/aikar/") {
+        name = "aikar-repo"
+    }
 }
 
 dependencies {
     implementation(kotlin("stdlib"))
-    compileOnly("com.destroystokyo.paper:paper-api:1.16.5-R0.1-SNAPSHOT")
-    implementation("redis.clients:jedis:4.3.2")
+    compileOnly(libs.paper.api)
+    implementation(libs.kaml)
+    implementation(libs.acf.paper)
+    implementation(awssdk.services.s3)
+    implementation("redis.clients:jedis:5.2.0")
     implementation("com.github.kittinunf.fuel:fuel:2.2.3")
     implementation("commons-codec:commons-codec:1.15")
+    implementation("org.eclipse.jgit:org.eclipse.jgit:7.2.0.202502191417-m3")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0")
+    // https://mvnrepository.com/artifact/io.kotest/kotest-runner-junit5-jvm
+    testImplementation("io.kotest:kotest-runner-junit5-jvm:5.9.1")
 }
 
-tasks {
-    compileKotlin { kotlinOptions.jvmTarget = "1.8" }
-    compileTestKotlin { kotlinOptions.jvmTarget = "1.8" }
+tasks.test {
+    useJUnitPlatform()
+}
 
-    shadowJar {
-        // JetBrains annotations should not be included in jar
-        exclude("org.jetbrains.annotations")
-        relocate("kotlin", "net.azisaba.yukitexture.libs.kotlin")
-        relocate("com.github.kittinunf.fuel", "net.azisaba.yukitexture.libs.com.github.kittinunf.fuel")
-        relocate("com.github.kittinunf.result", "net.azisaba.yukitexture.libs.com.github.kittinunf.result")
-        relocate("org.apache.commons.codec", "net.azisaba.yukitexture.libs.org.apache.commons.codec")
-        relocate("redis.clients", "net.azisaba.yukitexture.libs.redis.clients")
+kotlin {
+    jvmToolchain(17)
+}
 
-        minimize()
-    }
+tasks.shadowJar {
+    relocationPrefix = "net.azisaba.yukitexture.libs"
+    minimize()
+
+    // === Include & Exclude ===
+    // JetBrains annotations should not be included in jar
+    exclude("org.jetbrains.annotations")
+}
+
+tasks.runServer {
+    minecraftVersion("1.16.5")
 }
