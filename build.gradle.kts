@@ -11,7 +11,7 @@ java.toolchain.languageVersion.set(JavaLanguageVersion.of(8))
 repositories {
     mavenCentral()
     maven("https://jitpack.io/")
-    maven("https://papermc.io/repo/repository/maven-public/")
+    maven("https://repo.papermc.io/repository/maven-public/")
     maven("https://rayzr.dev/repo/")
 }
 
