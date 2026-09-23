@@ -29,6 +29,12 @@ class YukiTexture : JavaPlugin() {
     var sha1: String? = null
         private set
 
+    /**
+     * Cache of servers that should not apply texture
+     */
+    var dontApplyTextureServers: Set<String> = emptySet()
+        private set
+
     var jedisBox: JedisBox? = null
 
     private var config: YamlConfiguration? = null
@@ -47,6 +53,7 @@ class YukiTexture : JavaPlugin() {
         val yaml = getTextureConfig(true)
         tex = yaml.getString("url") ?: ""
         val configuredSha1 = yaml.getString("sha1")?.trim()
+        dontApplyTextureServers = yaml.getStringList("dontApplyTexture").toSet()
 
         if (tex.isNotBlank()) {
             logger.info("リソースパックのURLを $tex に設定しました。")

@@ -9,9 +9,15 @@ data class PlayerData(val uuid: UUID, val username: String, val childServer: Str
         private val gson = Gson()
 
         fun getByUUID(uuid: UUID): PlayerData? {
-            (JavaPlugin.getPlugin(YukiTexture::class.java).jedisBox ?: return null).jedisPool.resource.use { jedis ->
-                val rawData = jedis.get("velocity-redis-bridge:player:$uuid") ?: return null
-                return gson.fromJson(rawData, PlayerData::class.java)
+            return try {
+                val plugin = JavaPlugin.getPlugin(YukiTexture::class.java)
+                val jedisBox = plugin.jedisBox ?: return null
+                jedisBox.jedisPool.resource.use { jedis ->
+                    val rawData = jedis.get("velocity-redis-bridge:player:$uuid") ?: return null
+                    gson.fromJson(rawData, PlayerData::class.java)
+                }
+            } catch (e: Exception) {
+                null
             }
         }
     }
