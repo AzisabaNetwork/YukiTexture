@@ -1,33 +1,33 @@
 package net.azisaba.yukitexture
 
-import com.github.kittinunf.fuel.core.FuelManager
-import com.github.kittinunf.fuel.core.Request
-import com.github.kittinunf.result.Result
 import net.azisaba.yukitexture.command.ReloadTextureCommand
 import net.azisaba.yukitexture.command.TextureCommand
 import net.azisaba.yukitexture.listener.TextureListener
-import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.event.HoverEvent
-import org.apache.commons.codec.digest.DigestUtils
 import org.bukkit.command.CommandSender
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.entity.Player
 import org.bukkit.plugin.java.JavaPlugin
+import java.io.InputStream
+import java.net.HttpURLConnection
+import java.net.URL
+import java.security.MessageDigest
 import org.bukkit.ChatColor as CC
 
 class YukiTexture : JavaPlugin() {
-    private val prefix = "${CC.GRAY}[${CC.RED}$name${CC.GRAY}]${CC.RESET}"
+    val prefix = "${CC.GRAY}[${CC.RED}$name${CC.GRAY}]${CC.RESET}"
 
     /**
      * Texture pack URL
      */
-    lateinit var tex: String
+    var tex: String = ""
+        private set
 
     /**
      * SHA-1 hash
-     * null means undefined and the resource pack needs to be downloaded before sending request to client.
      */
-    private var sha1: String? = null
+    @Volatile
+    var sha1: String? = null
+        private set
 
     var jedisBox: JedisBox? = null
 
@@ -46,58 +46,55 @@ class YukiTexture : JavaPlugin() {
     fun reloadTex(sender: CommandSender? = null) {
         val yaml = getTextureConfig(true)
         tex = yaml.getString("url") ?: ""
-        if (tex.isNotBlank()) logger.info("リソースパックのURLを $tex に設定しました。")
+        val configuredSha1 = yaml.getString("sha1")?.trim()
 
-        // reset sha1 hash, so we can re-download the resource pack and calculate the sha1 hash again
+        if (tex.isNotBlank()) {
+            logger.info("リソースパックのURLを $tex に設定しました。")
+        }
+
+        if (!configuredSha1.isNullOrBlank()) {
+            sha1 = configuredSha1
+            logger.info("リソースパックのSHA-1ハッシュを設定ファイルから適用しました: $sha1")
+            sender?.sendMessage("$prefix ${CC.GREEN}リソースパックの設定を再読み込みしました。")
+            return
+        }
+
         sha1 = null
+        sender?.sendMessage("$prefix ${CC.GREEN}リソースパックの設定を再読み込みしました。")
 
-        sender?.sendMessage("$prefix ${CC.GREEN}リソースパックのURLを再読み込みしました。")
+        if (tex.isNotBlank()) {
+            val targetUrl = tex
+            server.scheduler.runTaskAsynchronously(this, Runnable {
+                try {
+                    logger.info("リソースパックのハッシュを計算中... ($targetUrl)")
+                    val calculated = calculateSha1FromUrl(targetUrl)
+                    if (tex == targetUrl) {
+                        sha1 = calculated
+                        logger.info("リソースパックのSHA-1ハッシュの計算が完了しました: $calculated")
+                    }
+                } catch (e: Exception) {
+                    logger.warning("リソースパックのSHA-1ハッシュの計算に失敗しました: ${e.message}")
+                }
+            })
+        }
     }
 
     fun applyTex(player: Player) {
         if (tex.isBlank()) return
 
-        // update sha1 hash of resource pack only if sha1 hash is not calculated yet
-        // but disable this for now
-        if (true || sha1 === null) {
-            val (_, response, result) = FuelManager()
-                .addRequestInterceptor { next: (Request) -> Request ->
-                    { req: Request ->
-                        player.sendActionBar(Component.text("${req.url.host} に接続中..."))
-                        next(req)
-                    }
-                }
-                .get(tex)
-                .responseProgress { readBytes, totalBytes ->
-                    val percent = readBytes.toFloat().div(totalBytes).times(100)
-                    player.sendActionBar(Component.text("リソースパックをダウンロード中... ($percent %)"))
-                }
-                .response()
-            val joinedHeaders =
-                response.headers
-                    .entries
-                    .joinToString("\n") {
-                        "${CC.AQUA}${it.key}: ${CC.RESET}${it.value.joinToString(" ")}"
-                    }
-            player.sendMessage(
-                Component.text("$prefix レスポンスは ")
-                    .append(Component.text("${response.statusCode} (${response.responseMessage})")
-                        .hoverEvent(HoverEvent.showText(Component.text("${CC.YELLOW}URL: ${CC.RESET}${response.url}\n$joinedHeaders"))))
-                    .append(Component.text("です。"))
-            )
-            if (result is Result.Failure) {
-                result.getException().printStackTrace()
-                return
-            }
-            sha1 = DigestUtils.sha1Hex(result.get())
+        val hash = sha1 ?: ""
+        runOnMainThread {
+            if (!player.isOnline) return@runOnMainThread
+            player.setResourcePack(tex, hash)
         }
-        player.sendTitle("", "プレイヤーのリソースパックを変更中...", 0, 100, 20)
-        player.setResourcePack(tex, sha1 ?: "")
-        player.sendMessage(
-            Component.text(prefix)
-                .append(Component.text("${CC.GREEN}完了しました。")
-                    .hoverEvent(HoverEvent.showText(Component.text("SHA-1: $sha1"))))
-        )
+    }
+
+    fun runOnMainThread(action: () -> Unit) {
+        if (server.isPrimaryThread) {
+            action()
+        } else {
+            server.scheduler.runTask(this, Runnable { action() })
+        }
     }
 
     override fun onEnable() {
@@ -127,5 +124,45 @@ class YukiTexture : JavaPlugin() {
     override fun onDisable() {
         jedisBox?.close()
         jedisBox = null
+    }
+
+    companion object {
+        fun calculateSha1FromUrl(urlString: String): String {
+            val url = URL(urlString)
+            val connection = url.openConnection() as HttpURLConnection
+            connection.requestMethod = "GET"
+            connection.connectTimeout = 10000
+            connection.readTimeout = 30000
+            connection.instanceFollowRedirects = true
+            connection.setRequestProperty("User-Agent", "YukiTexture/Minecraft-Server")
+
+            val responseCode = connection.responseCode
+            if (responseCode !in 200..299) {
+                throw IllegalStateException("HTTP request failed with status code $responseCode: ${connection.responseMessage}")
+            }
+
+            connection.inputStream.use { input ->
+                return calculateSha1(input)
+            }
+        }
+
+        fun calculateSha1(input: InputStream): String {
+            val digest = MessageDigest.getInstance("SHA-1")
+            val buffer = ByteArray(8192)
+            var bytesRead: Int
+            while (input.read(buffer).also { bytesRead = it } != -1) {
+                digest.update(buffer, 0, bytesRead)
+            }
+            val hashBytes = digest.digest()
+            val hexString = StringBuilder(hashBytes.size * 2)
+            for (b in hashBytes) {
+                val hex = Integer.toHexString(b.toInt() and 0xFF)
+                if (hex.length == 1) {
+                    hexString.append('0')
+                }
+                hexString.append(hex)
+            }
+            return hexString.toString()
+        }
     }
 }

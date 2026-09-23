@@ -8,6 +8,9 @@ redis:
 # リソパのURL (reloadtex可)
 url: ''
 
+# リソパのSHA-1ハッシュ (空欄の場合は起動時/リロード時に自動計算) (reloadtex可)
+sha1: ''
+
 # server1 <-> server2の移動の場合はリソースパックが送信されない (reloadtex可)
 dontApplyTexture:
 - server1
