@@ -35,6 +35,12 @@ class YukiTexture : JavaPlugin() {
     var dontApplyTextureServers: Set<String> = java.util.TreeSet(java.lang.String.CASE_INSENSITIVE_ORDER)
         private set
 
+    /**
+     * Optional version-specific resource packs
+     */
+    var versionPacks: List<VersionPack> = emptyList()
+        private set
+
     var jedisBox: JedisBox? = null
 
     private var config: YamlConfiguration? = null
@@ -58,45 +64,107 @@ class YukiTexture : JavaPlugin() {
         servers.addAll(yaml.getStringList("dontApplyTexture").map { it.trim() }.filter { it.isNotEmpty() })
         dontApplyTextureServers = servers
 
+        val parsedVersionPacks = mutableListOf<VersionPack>()
+        val rawVersionPacks = yaml.getMapList("versionPacks")
+        for (entry in rawVersionPacks) {
+            val packUrl = entry["url"]?.toString()?.trim() ?: continue
+            if (packUrl.isEmpty()) continue
+            val packSha1 = entry["sha1"]?.toString()?.trim()?.ifBlank { null }
+
+            val exactVersion = entry["version"]
+            val minVersion = entry["min"] ?: entry["minVersion"]
+            val maxVersion = entry["max"] ?: entry["maxVersion"]
+
+            val minProtocol = if (exactVersion != null) VersionPack.parseProtocol(exactVersion) else VersionPack.parseProtocol(minVersion)
+            val maxProtocol = if (exactVersion != null) VersionPack.parseProtocol(exactVersion) else VersionPack.parseProtocol(maxVersion)
+
+            parsedVersionPacks.add(VersionPack(minProtocol, maxProtocol, packUrl, packSha1))
+        }
+        versionPacks = parsedVersionPacks
+
         if (tex.isNotBlank()) {
-            logger.info("リソースパックのURLを $tex に設定しました。")
+            logger.info("デフォルトリソースパックのURLを $tex に設定しました。")
+        }
+        if (versionPacks.isNotEmpty()) {
+            logger.info("${versionPacks.size} 個のバージョン別リソースパック設定を読み込みました。")
         }
 
         if (!configuredSha1.isNullOrBlank()) {
             sha1 = configuredSha1
-            logger.info("リソースパックのSHA-1ハッシュを設定ファイルから適用しました: $sha1")
-            sender?.sendMessage("$prefix ${CC.GREEN}リソースパックの設定を再読み込みしました。")
-            return
+            logger.info("デフォルトリソースパックのSHA-1ハッシュを設定ファイルから適用しました: $sha1")
+        } else {
+            sha1 = null
         }
 
-        sha1 = null
-        sender?.sendMessage("$prefix ${CC.GREEN}リソースパックの設定を再読み込みしました。")
-
-        if (tex.isNotBlank()) {
+        val urlsToFetch = mutableListOf<Pair<String, (String) -> Unit>>()
+        if (tex.isNotBlank() && sha1 == null) {
             val targetUrl = tex
-            server.scheduler.runTaskAsynchronously(this, Runnable {
-                try {
-                    logger.info("リソースパックのハッシュを計算中... ($targetUrl)")
-                    val calculated = calculateSha1FromUrl(targetUrl)
-                    if (tex == targetUrl) {
-                        sha1 = calculated
-                        logger.info("リソースパックのSHA-1ハッシュの計算が完了しました: $calculated")
-                    }
-                } catch (e: Exception) {
-                    logger.warning("リソースパックのSHA-1ハッシュの計算に失敗しました: ${e.message}")
+            urlsToFetch.add(targetUrl to { calculated ->
+                if (tex == targetUrl) {
+                    sha1 = calculated
+                    logger.info("デフォルトリソースパックのSHA-1ハッシュの計算が完了しました: $calculated")
                 }
             })
         }
+        for (pack in versionPacks) {
+            if (pack.sha1 == null && pack.url.isNotBlank()) {
+                val targetUrl = pack.url
+                urlsToFetch.add(targetUrl to { calculated ->
+                    if (pack.url == targetUrl) {
+                        pack.sha1 = calculated
+                        logger.info("バージョン別リソースパック (${pack.url}) のSHA-1ハッシュの計算が完了しました: $calculated")
+                    }
+                })
+            }
+        }
+
+        if (urlsToFetch.isNotEmpty()) {
+            server.scheduler.runTaskAsynchronously(this, Runnable {
+                val cache = mutableMapOf<String, String>()
+                for ((targetUrl, callback) in urlsToFetch) {
+                    try {
+                        val calculated = cache.getOrPut(targetUrl) {
+                            logger.info("リソースパックのハッシュを計算中... ($targetUrl)")
+                            calculateSha1FromUrl(targetUrl)
+                        }
+                        callback(calculated)
+                    } catch (e: Exception) {
+                        logger.warning("リソースパック ($targetUrl) のSHA-1ハッシュ計算に失敗しました: ${e.message}")
+                    }
+                }
+            })
+        }
+
+        sender?.sendMessage("$prefix ${CC.GREEN}リソースパックの設定を再読み込みしました。")
     }
 
     fun applyTex(player: Player) {
-        if (tex.isBlank()) return
+        val (packUrl, packHash) = selectPackForPlayer(player)
+        if (packUrl.isBlank()) return
 
-        val hash = sha1 ?: ""
         runOnMainThread {
             if (!player.isOnline) return@runOnMainThread
-            player.setResourcePack(tex, hash)
+            player.setResourcePack(packUrl, packHash ?: "")
         }
+    }
+
+    private fun selectPackForPlayer(player: Player): Pair<String, String?> {
+        if (versionPacks.isNotEmpty() && isViaVersionAvailable()) {
+            try {
+                val protocolVersion = com.viaversion.viaversion.api.Via.getAPI().getPlayerVersion(player.uniqueId)
+                val matched = versionPacks.firstOrNull { it.matches(protocolVersion) }
+                if (matched != null) {
+                    return matched.url to (matched.sha1 ?: "")
+                }
+            } catch (e: Throwable) {
+                logger.warning("ViaVersion からのプレイヤーバージョン取得に失敗しました: ${e.message}")
+            }
+        }
+        return tex to (sha1 ?: "")
+    }
+
+    private fun isViaVersionAvailable(): Boolean {
+        return server.pluginManager.isPluginEnabled("ViaVersion")
     }
 
     fun runOnMainThread(action: () -> Unit) {

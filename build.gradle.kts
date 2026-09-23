@@ -13,12 +13,14 @@ repositories {
     maven("https://jitpack.io/")
     maven("https://repo.papermc.io/repository/maven-public/")
     maven("https://rayzr.dev/repo/")
+    maven("https://repo.viaversion.com/")
 }
 
 dependencies {
     implementation(kotlin("stdlib"))
     compileOnly("com.destroystokyo.paper:paper-api:1.16.5-R0.1-SNAPSHOT")
     implementation("redis.clients:jedis:4.3.2")
+    compileOnly("com.viaversion:viaversion-api:4.9.3")
 }
 
 tasks {

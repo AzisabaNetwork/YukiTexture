@@ -2,9 +2,9 @@ name: YukiTexture
 version: '${version}'
 main: net.azisaba.yukitexture.YukiTexture
 api-version: 1.16
-
+softdepend:
+  - ViaVersion
 author: YukiLeafX
-
 commands:
   tex:
     description: プレイヤーにリソースパックを適用します。
