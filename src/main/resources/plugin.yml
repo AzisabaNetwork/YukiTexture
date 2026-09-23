@@ -1,5 +1,5 @@
 name: YukiTexture
-version: 3.0.0
+version: '${version}'
 main: net.azisaba.yukitexture.YukiTexture
 api-version: 1.16
 

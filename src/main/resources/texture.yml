@@ -1,7 +1,7 @@
 # Redisの設定はreloadtex不可
 redis:
   host: localhost
-  config: 6379
+  port: 6379
   user: yukitexture
   password: ""
 

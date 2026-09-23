@@ -105,7 +105,7 @@ class YukiTexture : JavaPlugin() {
         val yaml = getTextureConfig()
         val redis = yaml.getConfigurationSection("redis") ?: error("redis section is missing")
         val host = redis.getString("host", "localhost")!!
-        val port = redis.getInt("port", 6379)
+        val port = if (redis.contains("port")) redis.getInt("port", 6379) else redis.getInt("config", 6379)
         val user = redis.getString("user")
         val password = redis.getString("password")
         try {
@@ -125,7 +125,7 @@ class YukiTexture : JavaPlugin() {
     }
 
     override fun onDisable() {
-        server.messenger.unregisterOutgoingPluginChannel(this)
-        server.messenger.unregisterIncomingPluginChannel(this)
+        jedisBox?.close()
+        jedisBox = null
     }
 }
