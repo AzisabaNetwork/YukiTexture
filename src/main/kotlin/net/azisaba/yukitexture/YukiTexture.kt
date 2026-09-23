@@ -30,9 +30,9 @@ class YukiTexture : JavaPlugin() {
         private set
 
     /**
-     * Cache of servers that should not apply texture
+     * Cache of servers that should not apply texture (case-insensitive)
      */
-    var dontApplyTextureServers: Set<String> = emptySet()
+    var dontApplyTextureServers: Set<String> = java.util.TreeSet(java.lang.String.CASE_INSENSITIVE_ORDER)
         private set
 
     var jedisBox: JedisBox? = null
@@ -53,7 +53,10 @@ class YukiTexture : JavaPlugin() {
         val yaml = getTextureConfig(true)
         tex = yaml.getString("url") ?: ""
         val configuredSha1 = yaml.getString("sha1")?.trim()
-        dontApplyTextureServers = yaml.getStringList("dontApplyTexture").toSet()
+
+        val servers = java.util.TreeSet(java.lang.String.CASE_INSENSITIVE_ORDER)
+        servers.addAll(yaml.getStringList("dontApplyTexture").map { it.trim() }.filter { it.isNotEmpty() })
+        dontApplyTextureServers = servers
 
         if (tex.isNotBlank()) {
             logger.info("リソースパックのURLを $tex に設定しました。")
@@ -102,6 +105,35 @@ class YukiTexture : JavaPlugin() {
         } else {
             server.scheduler.runTask(this, Runnable { action() })
         }
+    }
+
+    fun addDontApplyServer(serverName: String): Boolean {
+        val trimmed = serverName.trim()
+        if (trimmed.isEmpty() || dontApplyTextureServers.contains(trimmed)) return false
+        val newSet = java.util.TreeSet(java.lang.String.CASE_INSENSITIVE_ORDER)
+        newSet.addAll(dontApplyTextureServers)
+        newSet.add(trimmed)
+        dontApplyTextureServers = newSet
+        saveDontApplyServersToConfig()
+        return true
+    }
+
+    fun removeDontApplyServer(serverName: String): Boolean {
+        val trimmed = serverName.trim()
+        if (!dontApplyTextureServers.contains(trimmed)) return false
+        val newSet = java.util.TreeSet(java.lang.String.CASE_INSENSITIVE_ORDER)
+        newSet.addAll(dontApplyTextureServers)
+        newSet.remove(trimmed)
+        dontApplyTextureServers = newSet
+        saveDontApplyServersToConfig()
+        return true
+    }
+
+    private fun saveDontApplyServersToConfig() {
+        val file = dataFolder.resolve("texture.yml")
+        val yaml = getTextureConfig()
+        yaml.set("dontApplyTexture", dontApplyTextureServers.toList())
+        yaml.save(file)
     }
 
     override fun onEnable() {

@@ -22,12 +22,41 @@ class TextureListener(private val plugin: YukiTexture) : Listener {
     @EventHandler
     fun onPreJoin(e: AsyncPlayerPreLoginEvent) {
         cleanupExpired()
-        val data = PlayerData.getByUUID(e.uniqueId)
-        val shouldApply = if (data != null && data.childServer != null) {
-            data.childServer !in plugin.dontApplyTextureServers
+
+        var data = PlayerData.getByUUID(e.uniqueId)
+        // Velocity側の非同期タスクによる childServer 更新との競合対策として、最大2回リトライ
+        if (data == null || data.childServer.isNullOrBlank()) {
+            for (i in 1..2) {
+                try {
+                    Thread.sleep(50L)
+                } catch (_: InterruptedException) {
+                    break
+                }
+                val retryData = PlayerData.getByUUID(e.uniqueId)
+                if (retryData != null && !retryData.childServer.isNullOrBlank()) {
+                    data = retryData
+                    break
+                }
+            }
+        }
+
+        val childServer = data?.childServer?.trim()
+        val shouldApply = if (childServer != null && childServer.isNotEmpty()) {
+            !plugin.dontApplyTextureServers.contains(childServer)
         } else {
             true
         }
+
+        if (childServer != null) {
+            if (shouldApply) {
+                plugin.logger.info("Player ${e.name} (${e.uniqueId}) connected from '$childServer'. Applying texture pack.")
+            } else {
+                plugin.logger.info("Player ${e.name} (${e.uniqueId}) connected from '$childServer' (matched dontApplyTexture). Skipping texture pack.")
+            }
+        } else {
+            plugin.logger.info("Player ${e.name} (${e.uniqueId}) connected (no childServer found in Redis). Applying texture pack.")
+        }
+
         if (shouldApply) {
             pendingTextureApplies[e.uniqueId] = System.currentTimeMillis()
         }
