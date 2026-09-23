@@ -155,7 +155,9 @@ class YukiTexture : JavaPlugin() {
             jedisBox = null
         }
 
-        getCommand("tex")?.setExecutor(TextureCommand(this))
+        val textureCommand = TextureCommand(this)
+        getCommand("tex")?.setExecutor(textureCommand)
+        getCommand("tex")?.tabCompleter = textureCommand
         getCommand("reloadtex")?.setExecutor(ReloadTextureCommand(this))
         server.pluginManager.registerEvents(TextureListener(this), this)
     }

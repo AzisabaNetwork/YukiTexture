@@ -21,3 +21,6 @@ permissions:
     default: true
   yukitexture.command.reloadtex:
     default: op
+  yukitexture.command.admin:
+    description: 除外サーバー設定などの管理コマンドを実行する権限
+    default: op
