@@ -14,7 +14,8 @@ import java.security.MessageDigest
 import org.bukkit.ChatColor as CC
 
 class YukiTexture : JavaPlugin() {
-    val prefix = "${CC.GRAY}[${CC.RED}$name${CC.GRAY}]${CC.RESET}"
+    val prefix: String
+        get() = "${CC.GRAY}[${CC.RED}$name${CC.GRAY}]${CC.RESET}"
 
     /**
      * Texture pack URL
@@ -138,8 +139,8 @@ class YukiTexture : JavaPlugin() {
         sender?.sendMessage("$prefix ${CC.GREEN}リソースパックの設定を再読み込みしました。")
     }
 
-    fun applyTex(player: Player) {
-        val (packUrl, packHash) = selectPackForPlayer(player)
+    fun applyTex(player: Player, cachedProtocolVersion: Int? = null) {
+        val (packUrl, packHash) = selectPackForPlayer(player, cachedProtocolVersion)
         if (packUrl.isBlank()) return
 
         runOnMainThread {
@@ -148,23 +149,52 @@ class YukiTexture : JavaPlugin() {
         }
     }
 
-    private fun selectPackForPlayer(player: Player): Pair<String, String?> {
-        if (versionPacks.isNotEmpty() && isViaVersionAvailable()) {
-            try {
-                val protocolVersion = com.viaversion.viaversion.api.Via.getAPI().getPlayerVersion(player.uniqueId)
+    private fun selectPackForPlayer(player: Player, cachedProtocolVersion: Int? = null): Pair<String, String?> {
+        if (versionPacks.isNotEmpty()) {
+            val protocolVersion = cachedProtocolVersion ?: getPlayerProtocolVersion(player)
+            if (protocolVersion != null) {
                 val matched = versionPacks.firstOrNull { it.matches(protocolVersion) }
                 if (matched != null) {
                     return matched.url to (matched.sha1 ?: "")
                 }
-            } catch (e: Throwable) {
-                logger.warning("ViaVersion からのプレイヤーバージョン取得に失敗しました: ${e.message}")
             }
         }
         return tex to (sha1 ?: "")
     }
 
+    private fun getPlayerProtocolVersion(player: Player): Int? {
+        try {
+            val data = PlayerData.getByUUID(player.uniqueId)
+            if (data?.protocolVersion != null) {
+                return data.protocolVersion
+            }
+        } catch (_: Throwable) {
+        }
+        if (isViaVersionAvailable()) {
+            try {
+                return getProtocolVersionFromViaVersion(player.uniqueId)
+            } catch (e: Throwable) {
+                logger.warning("ViaVersion からのプレイヤーバージョン取得に失敗しました: ${e.message}")
+            }
+        }
+
+        return null
+    }
+
     private fun isViaVersionAvailable(): Boolean {
         return server.pluginManager.isPluginEnabled("ViaVersion")
+    }
+
+    private fun getProtocolVersionFromViaVersion(uuid: java.util.UUID): Int? {
+        return try {
+            val viaClass = Class.forName("com.viaversion.viaversion.api.Via")
+            val getApiMethod = viaClass.getMethod("getAPI")
+            val api = getApiMethod.invoke(null)
+            val getPlayerVersionMethod = api.javaClass.getMethod("getPlayerVersion", java.util.UUID::class.java)
+            getPlayerVersionMethod.invoke(api, uuid) as? Int
+        } catch (_: Throwable) {
+            null
+        }
     }
 
     fun runOnMainThread(action: () -> Unit) {

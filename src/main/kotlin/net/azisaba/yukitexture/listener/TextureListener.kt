@@ -12,11 +12,13 @@ import java.util.concurrent.ConcurrentHashMap
 
 class TextureListener(private val plugin: YukiTexture) : Listener {
     private val pendingTextureApplies = ConcurrentHashMap<UUID, Long>()
+    private val playerProtocolVersions = ConcurrentHashMap<UUID, Int>()
 
     private fun cleanupExpired() {
         val now = System.currentTimeMillis()
-        val expiredThreshold = 60_000L // 60秒以上経過した未参加エントリを削除
+        val expiredThreshold = 60_000L
         pendingTextureApplies.entries.removeIf { now - it.value > expiredThreshold }
+        playerProtocolVersions.keys.removeIf { !pendingTextureApplies.containsKey(it) }
     }
 
     @EventHandler
@@ -24,7 +26,6 @@ class TextureListener(private val plugin: YukiTexture) : Listener {
         cleanupExpired()
 
         var data = PlayerData.getByUUID(e.uniqueId)
-        // Velocity側の非同期タスクによる childServer 更新との競合対策として、最大2回リトライ
         if (data == null || data.childServer.isNullOrBlank()) {
             for (i in 1..2) {
                 try {
@@ -40,8 +41,13 @@ class TextureListener(private val plugin: YukiTexture) : Listener {
             }
         }
 
+        val protocolVersion = data?.protocolVersion
+        if (protocolVersion != null) {
+            playerProtocolVersions[e.uniqueId] = protocolVersion
+        }
+
         val childServer = data?.childServer?.trim()
-        val shouldApply = if (childServer != null && childServer.isNotEmpty()) {
+        val shouldApply = if (!childServer.isNullOrEmpty()) {
             !plugin.dontApplyTextureServers.contains(childServer)
         } else {
             true
@@ -65,13 +71,15 @@ class TextureListener(private val plugin: YukiTexture) : Listener {
     @EventHandler
     fun onJoin(e: PlayerJoinEvent) {
         val registered = pendingTextureApplies.remove(e.player.uniqueId)
+        val cachedProtocol = playerProtocolVersions.remove(e.player.uniqueId)
         if (registered != null && e.player.hasPermission("yukitexture.receive")) {
-            plugin.applyTex(e.player)
+            plugin.applyTex(e.player, cachedProtocol)
         }
     }
 
     @EventHandler
     fun onQuit(e: PlayerQuitEvent) {
         pendingTextureApplies.remove(e.player.uniqueId)
+        playerProtocolVersions.remove(e.player.uniqueId)
     }
 }

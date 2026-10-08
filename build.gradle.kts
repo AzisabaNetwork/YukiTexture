@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "net.azisaba"
-version = "3.0.4+1.15.2"
+version = "3.0.5+1.15.2"
 
 java.toolchain.languageVersion.set(JavaLanguageVersion.of(8))
 
@@ -21,9 +21,14 @@ dependencies {
     compileOnly("com.destroystokyo.paper:paper-api:1.15.2-R0.1-SNAPSHOT")
     implementation("redis.clients:jedis:8.0.1")
     compileOnly("com.viaversion:viaversion-api:4.9.3")
+    testImplementation(kotlin("test"))
 }
 
 tasks {
+    build {
+        dependsOn(shadowJar)
+    }
+
     processResources {
         filesMatching("plugin.yml") {
             expand("version" to project.version)
@@ -33,12 +38,15 @@ tasks {
     compileKotlin { kotlinOptions.jvmTarget = "1.8" }
     compileTestKotlin { kotlinOptions.jvmTarget = "1.8" }
 
+    jar {
+        enabled = false
+    }
+
     shadowJar {
+        archiveClassifier.set("")
         // JetBrains annotations should not be included in jar
         exclude("org.jetbrains.annotations")
         relocate("kotlin", "net.azisaba.yukitexture.libs.kotlin")
         relocate("redis.clients", "net.azisaba.yukitexture.libs.redis.clients")
-
-        minimize()
     }
 }
