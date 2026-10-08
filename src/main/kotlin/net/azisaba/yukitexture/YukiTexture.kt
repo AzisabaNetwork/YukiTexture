@@ -215,7 +215,7 @@ class YukiTexture : JavaPlugin() {
         try {
             logger.info("Trying $host:$port...")
             jedisBox = JedisBox(host, port, user, password)
-            jedisBox?.jedisPool?.resource?.use { it.get("something") }
+            jedisBox?.client?.ping()
             logger.info("Redisに接続しました。")
         } catch (e: Exception) {
             logger.warning("Redisに接続できませんでした。データベースなしで続行します。")

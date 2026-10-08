@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "net.azisaba"
-version = "3.0.4"
+version = "3.0.4+1.15.2"
 
 java.toolchain.languageVersion.set(JavaLanguageVersion.of(8))
 
@@ -18,8 +18,8 @@ repositories {
 
 dependencies {
     implementation(kotlin("stdlib"))
-    compileOnly("com.destroystokyo.paper:paper-api:1.16.5-R0.1-SNAPSHOT")
-    implementation("redis.clients:jedis:4.3.2")
+    compileOnly("com.destroystokyo.paper:paper-api:1.15.2-R0.1-SNAPSHOT")
+    implementation("redis.clients:jedis:8.0.1")
     compileOnly("com.viaversion:viaversion-api:4.9.3")
 }
 

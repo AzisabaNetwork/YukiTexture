@@ -1,30 +1,53 @@
 package net.azisaba.yukitexture
 
-import redis.clients.jedis.JedisPool
-import redis.clients.jedis.JedisPoolConfig
+import redis.clients.jedis.DefaultJedisClientConfig
+import redis.clients.jedis.JedisClientConfig
+import redis.clients.jedis.RedisClient
 import java.io.Closeable
 
 class JedisBox(
     hostname: String,
     port: Int,
     username: String? = null,
-    password: String? = null
+    password: String? = null,
+    timeoutMillis: Int = 3000
 ) : Closeable {
-    val jedisPool: JedisPool = createPool(hostname, port, username, password)
+    val client: RedisClient = createClient(hostname, port, username, password, timeoutMillis)
 
     override fun close() {
-        jedisPool.close()
+        client.close()
     }
 
     companion object {
         @JvmStatic
-        fun createPool(hostname: String, port: Int, username: String?, password: String?): JedisPool {
-            return when {
-                username != null && password != null -> JedisPool(hostname, port, username, password)
-                password != null -> JedisPool(JedisPoolConfig(), hostname, port, 3000, password)
-                username != null -> throw IllegalArgumentException("password must not be null when username is provided")
-                else -> JedisPool(JedisPoolConfig(), hostname, port)
+        @JvmOverloads
+        fun createClient(
+            hostname: String,
+            port: Int,
+            username: String? = null,
+            password: String? = null,
+            timeoutMillis: Int = 3000
+        ): RedisClient {
+            if (username != null && password == null) {
+                throw IllegalArgumentException("password must not be null when username is provided")
             }
+
+            val clientConfig: JedisClientConfig = DefaultJedisClientConfig.builder()
+                .timeoutMillis(timeoutMillis)
+                .apply {
+                    if (username != null && password != null) {
+                        user(username)
+                        password(password)
+                    } else if (password != null) {
+                        password(password)
+                    }
+                }
+                .build()
+
+            return RedisClient.builder()
+                .hostAndPort(hostname, port)
+                .clientConfig(clientConfig)
+                .build()
         }
     }
 }

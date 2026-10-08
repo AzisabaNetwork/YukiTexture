@@ -12,11 +12,9 @@ data class PlayerData(val uuid: UUID, val username: String, val childServer: Str
             return try {
                 val plugin = JavaPlugin.getPlugin(YukiTexture::class.java)
                 val jedisBox = plugin.jedisBox ?: return null
-                jedisBox.jedisPool.resource.use { jedis ->
-                    val rawData = jedis.get("velocity-redis-bridge:player:$uuid") ?: return null
-                    gson.fromJson(rawData, PlayerData::class.java)
-                }
-            } catch (e: Exception) {
+                val rawData = jedisBox.client.get("velocity-redis-bridge:player:$uuid") ?: return null
+                gson.fromJson(rawData, PlayerData::class.java)
+            } catch (_: Exception) {
                 null
             }
         }
