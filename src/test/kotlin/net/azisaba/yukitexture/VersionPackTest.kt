@@ -27,6 +27,9 @@ class VersionPackTest {
         assertEquals(340, VersionPack.parseProtocol("1.12.2"))
         assertEquals(47, VersionPack.parseProtocol("1.8.8"))
         assertEquals(765, VersionPack.parseProtocol("1.20.4"))
+        assertEquals(767, VersionPack.parseProtocol("1.21"))
+        assertEquals(767, VersionPack.parseProtocol("1.21.1"))
+        assertEquals(767, VersionPack.parseProtocol("1.21.11"))
         assertEquals(769, VersionPack.parseProtocol("1.21.4"))
     }
 

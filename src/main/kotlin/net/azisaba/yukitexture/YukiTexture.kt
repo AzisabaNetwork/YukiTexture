@@ -150,14 +150,25 @@ class YukiTexture : JavaPlugin() {
     }
 
     private fun selectPackForPlayer(player: Player, cachedProtocolVersion: Int? = null): Pair<String, String?> {
+        val protocolVersion = cachedProtocolVersion ?: getPlayerProtocolVersion(player)
+        logger.info("プレイヤー ${player.name} (${player.uniqueId}) の適用リソースパック判定を開始します。検出バージョン: $protocolVersion")
+
         if (versionPacks.isNotEmpty()) {
-            val protocolVersion = cachedProtocolVersion ?: getPlayerProtocolVersion(player)
             if (protocolVersion != null) {
-                val matched = versionPacks.firstOrNull { it.matches(protocolVersion) }
-                if (matched != null) {
-                    return matched.url to (matched.sha1 ?: "")
+                for ((index, pack) in versionPacks.withIndex()) {
+                    val matches = pack.matches(protocolVersion)
+                    logger.info("  設定パック [$index] (min=${pack.minProtocol}, max=${pack.maxProtocol}, url=${pack.url}) -> 判定: $matches")
+                    if (matches) {
+                        logger.info("  -> パック [$index] がマッチしました。このパックを適用します。")
+                        return pack.url to (pack.sha1 ?: "")
+                    }
                 }
+                logger.info("  -> 合致するバージョン別設定がなかったため、デフォルトURL ($tex) を適用します。")
+            } else {
+                logger.warning("  -> プロトコルバージョンが取得できなかったため、デフォルトURL ($tex) を適用します。")
             }
+        } else {
+            logger.info("  -> versionPacks 設定が空のため、デフォルトURL ($tex) を適用します。")
         }
         return tex to (sha1 ?: "")
     }
@@ -165,33 +176,80 @@ class YukiTexture : JavaPlugin() {
     private fun getPlayerProtocolVersion(player: Player): Int? {
         try {
             val data = PlayerData.getByUUID(player.uniqueId)
-            if (data?.protocolVersion != null) {
-                return data.protocolVersion
+            if (data != null) {
+                logger.info("[Redis] プレイヤー ${player.name} のデータを受信: rawJson=${data.rawJson}")
+                if (data.protocolVersion != null) {
+                    logger.info("[Redis] protocolVersion=${data.protocolVersion} を検出しました。")
+                    return data.protocolVersion
+                } else {
+                    logger.info("[Redis] protocolVersion は null でした。")
+                }
+            } else {
+                logger.info("[Redis] プレイヤー ${player.name} のデータが存在しませんでした。")
             }
-        } catch (_: Throwable) {
+        } catch (e: Throwable) {
+            logger.warning("[Redis] プレイヤーデータの取得中に例外が発生しました: ${e.message}")
         }
-        if (isViaVersionAvailable()) {
-            try {
-                return getProtocolVersionFromViaVersion(player.uniqueId)
-            } catch (e: Throwable) {
-                logger.warning("ViaVersion からのプレイヤーバージョン取得に失敗しました: ${e.message}")
+
+        if (isPluginEnabled("ViaVersion")) {
+            val viaVer = getProtocolVersionFromViaVersion(player.uniqueId)
+            if (viaVer != null) {
+                logger.info("[ViaVersion] protocolVersion=$viaVer を検出しました。")
+                return viaVer
+            } else {
+                logger.info("[ViaVersion] プラグインは有効ですが、バージョンの取得結果は null でした。")
+            }
+        }
+
+        if (isPluginEnabled("ProtocolLib")) {
+            val protoVer = getProtocolVersionFromProtocolLib(player)
+            if (protoVer != null) {
+                logger.info("[ProtocolLib] protocolVersion=$protoVer を検出しました。")
+                return protoVer
+            } else {
+                logger.info("[ProtocolLib] プラグインは有効ですが、バージョンの取得結果は null でした。")
             }
         }
 
         return null
     }
 
-    private fun isViaVersionAvailable(): Boolean {
-        return server.pluginManager.isPluginEnabled("ViaVersion")
+    private fun isPluginEnabled(name: String): Boolean {
+        return server.pluginManager.isPluginEnabled(name)
     }
 
     private fun getProtocolVersionFromViaVersion(uuid: java.util.UUID): Int? {
-        return try {
+        try {
             val viaClass = Class.forName("com.viaversion.viaversion.api.Via")
             val getApiMethod = viaClass.getMethod("getAPI")
             val api = getApiMethod.invoke(null)
             val getPlayerVersionMethod = api.javaClass.getMethod("getPlayerVersion", java.util.UUID::class.java)
-            getPlayerVersionMethod.invoke(api, uuid) as? Int
+            val ver = getPlayerVersionMethod.invoke(api, uuid) as? Int
+            if (ver != null && ver != -1) return ver
+        } catch (_: Throwable) {
+        }
+
+        try {
+            val viaClass = Class.forName("us.myles.ViaVersion.api.Via")
+            val getApiMethod = viaClass.getMethod("getAPI")
+            val api = getApiMethod.invoke(null)
+            val getPlayerVersionMethod = api.javaClass.getMethod("getPlayerVersion", java.util.UUID::class.java)
+            val ver = getPlayerVersionMethod.invoke(api, uuid) as? Int
+            if (ver != null && ver != -1) return ver
+        } catch (_: Throwable) {
+        }
+
+        return null
+    }
+
+    private fun getProtocolVersionFromProtocolLib(player: Player): Int? {
+        return try {
+            val protocolLibClass = Class.forName("com.comphenix.protocol.ProtocolLibrary")
+            val getProtocolManagerMethod = protocolLibClass.getMethod("getProtocolManager")
+            val manager = getProtocolManagerMethod.invoke(null)
+            val getProtocolVersionMethod = manager.javaClass.getMethod("getProtocolVersion", Player::class.java)
+            val ver = getProtocolVersionMethod.invoke(manager, player) as? Int
+            if (ver != null && ver > 0 && ver != Integer.MIN_VALUE) ver else null
         } catch (_: Throwable) {
             null
         }

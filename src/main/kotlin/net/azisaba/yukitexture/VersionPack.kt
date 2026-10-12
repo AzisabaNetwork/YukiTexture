@@ -47,6 +47,11 @@ data class VersionPack(
                 candidates.add(clean.removePrefix("1."))
             }
 
+            val dots = clean.split(".")
+            if (dots.size >= 2) {
+                candidates.add("${dots[0]}.${dots[1]}")
+            }
+
             for (candidate in candidates.distinct()) {
                 val directMatch = VERSION_TO_PROTOCOL[candidate]
                 if (directMatch != null) return directMatch
@@ -56,7 +61,7 @@ data class VersionPack(
         }
 
         private fun resolveWithViaVersion(candidates: List<String>): Int? {
-            return try {
+            try {
                 val clazz = Class.forName("com.viaversion.viaversion.api.protocol.version.ProtocolVersion")
                 val getClosestMethod = clazz.getMethod("getClosest", String::class.java)
                 val getVersionMethod = clazz.getMethod("getVersion")
@@ -70,10 +75,27 @@ data class VersionPack(
                         }
                     }
                 }
-                null
             } catch (_: Throwable) {
-                null
             }
+
+            try {
+                val clazz = Class.forName("us.myles.ViaVersion.api.protocol.ProtocolVersion")
+                val getClosestMethod = clazz.getMethod("getClosest", String::class.java)
+                val getVersionMethod = clazz.getMethod("getVersion")
+
+                for (candidate in candidates.distinct()) {
+                    val pv = getClosestMethod.invoke(null, candidate)
+                    if (pv != null) {
+                        val ver = getVersionMethod.invoke(pv) as? Int
+                        if (ver != null && ver != -1) {
+                            return ver
+                        }
+                    }
+                }
+            } catch (_: Throwable) {
+            }
+
+            return null
         }
     }
 }

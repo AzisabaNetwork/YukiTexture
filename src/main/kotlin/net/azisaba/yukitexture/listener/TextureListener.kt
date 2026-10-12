@@ -23,47 +23,56 @@ class TextureListener(private val plugin: YukiTexture) : Listener {
 
     @EventHandler
     fun onPreJoin(e: AsyncPlayerPreLoginEvent) {
-        cleanupExpired()
+        try {
+            cleanupExpired()
 
-        var data = PlayerData.getByUUID(e.uniqueId)
-        if (data == null || data.childServer.isNullOrBlank()) {
-            for (i in 1..2) {
-                try {
-                    Thread.sleep(50L)
-                } catch (_: InterruptedException) {
-                    break
-                }
-                val retryData = PlayerData.getByUUID(e.uniqueId)
-                if (retryData != null && !retryData.childServer.isNullOrBlank()) {
-                    data = retryData
-                    break
+            var data = PlayerData.getByUUID(e.uniqueId)
+            if (data == null || data.childServer.isNullOrBlank()) {
+                for (i in 1..2) {
+                    try {
+                        Thread.sleep(50L)
+                    } catch (_: InterruptedException) {
+                        break
+                    }
+                    val retryData = PlayerData.getByUUID(e.uniqueId)
+                    if (retryData != null && !retryData.childServer.isNullOrBlank()) {
+                        data = retryData
+                        break
+                    }
                 }
             }
-        }
 
-        val protocolVersion = data?.protocolVersion
-        if (protocolVersion != null) {
-            playerProtocolVersions[e.uniqueId] = protocolVersion
-        }
-
-        val childServer = data?.childServer?.trim()
-        val shouldApply = if (!childServer.isNullOrEmpty()) {
-            !plugin.dontApplyTextureServers.contains(childServer)
-        } else {
-            true
-        }
-
-        if (childServer != null) {
-            if (shouldApply) {
-                plugin.logger.info("Player ${e.name} (${e.uniqueId}) connected from '$childServer'. Applying texture pack.")
+            val protocolVersion = data?.protocolVersion
+            if (protocolVersion != null) {
+                playerProtocolVersions[e.uniqueId] = protocolVersion
+                plugin.logger.info("[PreJoin] Player ${e.name} (${e.uniqueId}): Redis から protocolVersion=$protocolVersion をキャッシュしました。")
             } else {
-                plugin.logger.info("Player ${e.name} (${e.uniqueId}) connected from '$childServer' (matched dontApplyTexture). Skipping texture pack.")
+                plugin.logger.info("[PreJoin] Player ${e.name} (${e.uniqueId}): Redis に protocolVersion はありませんでした。")
             }
-        } else {
-            plugin.logger.info("Player ${e.name} (${e.uniqueId}) connected (no childServer found in Redis). Applying texture pack.")
-        }
 
-        if (shouldApply) {
+            val childServer = data?.childServer?.trim()
+            val shouldApply = if (!childServer.isNullOrEmpty()) {
+                !plugin.dontApplyTextureServers.contains(childServer)
+            } else {
+                true
+            }
+
+            if (childServer != null) {
+                if (shouldApply) {
+                    plugin.logger.info("Player ${e.name} (${e.uniqueId}) connected from '$childServer'. Applying texture pack.")
+                } else {
+                    plugin.logger.info("Player ${e.name} (${e.uniqueId}) connected from '$childServer' (matched dontApplyTexture). Skipping texture pack.")
+                }
+            } else {
+                plugin.logger.info("Player ${e.name} (${e.uniqueId}) connected (no childServer found in Redis). Applying texture pack.")
+            }
+
+            if (shouldApply) {
+                pendingTextureApplies[e.uniqueId] = System.currentTimeMillis()
+            }
+        } catch (t: Throwable) {
+            plugin.logger.warning("[PreJoin] onPreJoin処理中にエラーが発生しました: ${t.message}")
+            t.printStackTrace()
             pendingTextureApplies[e.uniqueId] = System.currentTimeMillis()
         }
     }
@@ -72,6 +81,7 @@ class TextureListener(private val plugin: YukiTexture) : Listener {
     fun onJoin(e: PlayerJoinEvent) {
         val registered = pendingTextureApplies.remove(e.player.uniqueId)
         val cachedProtocol = playerProtocolVersions.remove(e.player.uniqueId)
+        plugin.logger.info("[PlayerJoin] Player ${e.player.name} (${e.player.uniqueId}): registered=$registered, cachedProtocol=$cachedProtocol, hasPermission=${e.player.hasPermission("yukitexture.receive")}")
         if (registered != null && e.player.hasPermission("yukitexture.receive")) {
             plugin.applyTex(e.player, cachedProtocol)
         }
