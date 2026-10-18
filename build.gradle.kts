@@ -29,6 +29,10 @@ tasks {
         dependsOn(shadowJar)
     }
 
+    withType<JavaCompile> {
+        options.encoding = "UTF-8"
+    }
+
     processResources {
         filesMatching("plugin.yml") {
             expand("version" to project.version)
