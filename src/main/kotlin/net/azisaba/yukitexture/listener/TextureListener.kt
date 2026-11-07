@@ -54,10 +54,12 @@ class TextureListener(private val plugin: YukiTexture) : Listener {
             }
 
             val childServer = data?.childServer?.trim()
-            val shouldApply = if (!childServer.isNullOrEmpty()) {
-                !plugin.dontApplyTextureServers.contains(childServer)
-            } else {
-                true
+            val listed = !childServer.isNullOrEmpty() && plugin.dontApplyTextureServers.contains(childServer)
+            // 除外リストのサーバからの移動でも、現在の接続でパックの適用に成功していなければ送信する
+            val alreadyLoaded = listed && plugin.hasLoadedInCurrentSession(e.uniqueId, data)
+            val shouldApply = !alreadyLoaded
+            if (listed && !alreadyLoaded) {
+                plugin.logger.info("Player ${e.name}: '$childServer' は除外リストですが、現在の接続でリソースパックの適用成功が確認できないため送信します。")
             }
 
             if (childServer != null) {
@@ -112,7 +114,10 @@ class TextureListener(private val plugin: YukiTexture) : Listener {
         val player = e.player
         plugin.logger.info("[PackStatus] ${player.name}: ${e.status}")
         when (e.status) {
-            Status.SUCCESSFULLY_LOADED -> retryCounts.remove(player.uniqueId)
+            Status.SUCCESSFULLY_LOADED -> {
+                retryCounts.remove(player.uniqueId)
+                plugin.markLoaded(player.uniqueId)
+            }
             Status.FAILED_DOWNLOAD, Status.FAILED_RELOAD -> {
                 val count = retryCounts.merge(player.uniqueId, 1) { a, b -> a + b } ?: 1
                 if (count <= MAX_RETRIES) {

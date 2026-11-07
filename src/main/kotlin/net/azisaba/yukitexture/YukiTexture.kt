@@ -177,6 +177,7 @@ class YukiTexture : JavaPlugin() {
                 return@runOnMainThread
             }
             lastApplied[player.uniqueId] = now
+            server.scheduler.runTaskAsynchronously(this, Runnable { clearLoaded(player.uniqueId) })
             logger.info("[Apply] ${player.name} にリソースパックを送信: url=$packUrl, sha1=${packHash ?: ""}")
             player.setResourcePack(packUrl, packHash ?: "")
         }
@@ -184,6 +185,45 @@ class YukiTexture : JavaPlugin() {
 
     fun forgetPlayer(uuid: UUID) {
         lastApplied.remove(uuid)
+    }
+
+    private fun loadedKey(uuid: UUID) = "yukitexture:loaded:$uuid"
+
+    /**
+     * クライアントがリソースパックの適用に成功したことを、プロキシ接続(ポート)単位で Redis に記録する。
+     * サーバ間移動時に「送信をスキップしてよいか」の判断に使う。
+     */
+    fun markLoaded(uuid: UUID) {
+        server.scheduler.runTaskAsynchronously(this, Runnable {
+            try {
+                val box = jedisBox ?: return@Runnable
+                val port = PlayerData.getByUUID(uuid)?.port ?: return@Runnable
+                box.client.setex(loadedKey(uuid), LOADED_TTL_SECONDS, port.toString())
+            } catch (e: Throwable) {
+                logger.warning("[Redis] 適用済みフラグの保存に失敗しました: ${e.message}")
+            }
+        })
+    }
+
+    private fun clearLoaded(uuid: UUID) {
+        try {
+            jedisBox?.client?.del(loadedKey(uuid))
+        } catch (e: Throwable) {
+            logger.warning("[Redis] 適用済みフラグの削除に失敗しました: ${e.message}")
+        }
+    }
+
+    /**
+     * 現在のプロキシ接続中に、既にリソースパックの適用に成功しているか。
+     * 判定できない場合(Redisなし、ポート不明など)は false を返し、送信する側に倒す。
+     */
+    fun hasLoadedInCurrentSession(uuid: UUID, data: PlayerData?): Boolean {
+        val port = data?.port ?: return false
+        return try {
+            jedisBox?.client?.get(loadedKey(uuid)) == port.toString()
+        } catch (e: Throwable) {
+            false
+        }
     }
 
     private fun selectPackForPlayer(player: Player, cachedProtocolVersion: Int? = null): Pair<String, String?> {
@@ -362,6 +402,7 @@ class YukiTexture : JavaPlugin() {
 
     companion object {
         private const val DUPLICATE_WINDOW_MILLIS = 10_000L
+        private const val LOADED_TTL_SECONDS = 6L * 60 * 60
 
         fun calculateSha1FromUrl(urlString: String): String {
             val url = URL(urlString)

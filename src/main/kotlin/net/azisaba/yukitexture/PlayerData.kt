@@ -9,6 +9,8 @@ data class PlayerData(
     val username: String,
     val childServer: String?,
     val protocolVersion: Int? = null,
+    /** プレイヤーのクライアント接続ポート。プロキシへの接続(セッション)ごとに変わる。 */
+    val port: Int? = null,
     val rawJson: String? = null
 ) {
     companion object {
