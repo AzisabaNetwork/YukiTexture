@@ -1,10 +1,10 @@
 name: YukiTexture
-version: 3.0.0
+version: '${version}'
 main: net.azisaba.yukitexture.YukiTexture
-api-version: 1.16
-
+api-version: '1.21'
+softdepend:
+  - ViaVersion
 author: YukiLeafX
-
 commands:
   tex:
     description: プレイヤーにリソースパックを適用します。
@@ -20,4 +20,7 @@ permissions:
   yukitexture.command.texture:
     default: true
   yukitexture.command.reloadtex:
+    default: op
+  yukitexture.command.admin:
+    description: 除外サーバー設定などの管理コマンドを実行する権限
     default: op

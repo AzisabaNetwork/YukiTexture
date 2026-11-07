@@ -1,41 +1,54 @@
 plugins {
-    kotlin("jvm") version "1.7.21"
-    id("com.github.johnrengelman.shadow") version "7.1.2"
+    kotlin("jvm") version "2.0.21"
+    id("com.gradleup.shadow") version "8.3.0"
 }
 
 group = "net.azisaba"
-version = "3.0.2"
+version = "3.0.5+1.21.11"
 
-java.toolchain.languageVersion.set(JavaLanguageVersion.of(8))
+java.toolchain.languageVersion.set(JavaLanguageVersion.of(21))
 
 repositories {
     mavenCentral()
     maven("https://jitpack.io/")
-    maven("https://papermc.io/repo/repository/maven-public/")
+    maven("https://repo.papermc.io/repository/maven-public/")
     maven("https://rayzr.dev/repo/")
+    maven("https://repo.viaversion.com/")
 }
 
 dependencies {
     implementation(kotlin("stdlib"))
-    compileOnly("com.destroystokyo.paper:paper-api:1.16.5-R0.1-SNAPSHOT")
-    implementation("redis.clients:jedis:4.3.2")
-    implementation("com.github.kittinunf.fuel:fuel:2.2.3")
-    implementation("commons-codec:commons-codec:1.15")
+    compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
+    implementation("redis.clients:jedis:8.0.1")
+    compileOnly("com.viaversion:viaversion-api:4.9.3")
+    testImplementation(kotlin("test"))
 }
 
 tasks {
-    compileKotlin { kotlinOptions.jvmTarget = "1.8" }
-    compileTestKotlin { kotlinOptions.jvmTarget = "1.8" }
+    build {
+        dependsOn(shadowJar)
+    }
+
+    withType<JavaCompile> {
+        options.encoding = "UTF-8"
+    }
+
+    processResources {
+        filesMatching("plugin.yml") {
+            expand("version" to project.version)
+        }
+    }
+
+
+    jar {
+        enabled = false
+    }
 
     shadowJar {
+        archiveClassifier.set("")
         // JetBrains annotations should not be included in jar
         exclude("org.jetbrains.annotations")
         relocate("kotlin", "net.azisaba.yukitexture.libs.kotlin")
-        relocate("com.github.kittinunf.fuel", "net.azisaba.yukitexture.libs.com.github.kittinunf.fuel")
-        relocate("com.github.kittinunf.result", "net.azisaba.yukitexture.libs.com.github.kittinunf.result")
-        relocate("org.apache.commons.codec", "net.azisaba.yukitexture.libs.org.apache.commons.codec")
         relocate("redis.clients", "net.azisaba.yukitexture.libs.redis.clients")
-
-        minimize()
     }
 }

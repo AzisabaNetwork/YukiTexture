@@ -1,12 +1,28 @@
 # Redisの設定はreloadtex不可
 redis:
   host: localhost
-  config: 6379
+  port: 6379
   user: yukitexture
   password: ""
 
 # リソパのURL (reloadtex可)
 url: ''
+
+# リソパのSHA-1ハッシュ (空欄の場合は起動時/リロード時に自動計算) (reloadtex可)
+sha1: ''
+
+# [オプション] クライアントバージョン別のリソースパック設定 (reloadtex可)
+# Redis (velocity-redis-bridge:player:<uuid> の protocolVersion) または ViaVersion からクライアントバージョンを取得して判定します。
+# 上から順にマッチ判定され、該当しない場合は上のデフォルトURLが使われます。
+# min / max にはプロトコル番号 (例: 754) または Minecraftバージョン (例: "1.16.5", "1.20.4") を指定できます。
+# 単一バージョンの場合は version: "1.16.5" と指定できます。
+#versionPacks:
+#  - min: "1.15.2"
+#    url: 'https://example.com/pack-1.20.4.zip'
+#    sha1: ''
+#  - max: "1.16.5"
+#    url: 'https://example.com/pack-1.16.5.zip'
+#    sha1: ''
 
 # server1 <-> server2の移動の場合はリソースパックが送信されない (reloadtex可)
 dontApplyTexture:
